@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/main.js",
+    "dev": "npx tsx watch src/main.ts"
+  },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "typescript": "^5.9.3"
