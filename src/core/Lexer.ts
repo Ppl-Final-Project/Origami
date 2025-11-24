@@ -96,241 +96,228 @@ const OPERATORS = new Set([
 
 const PUNCTUATIONS = new Set([".", ";", ",", "(", ")", "{", "}", "[", "]"]);
 
-function LexicalAnalyzer(input: string): Token[] {
-  const tokens: Token[] = [];
-  let line = 1;
-  let column = 1;
-  let i = 0;
+class LexicalAnalyzer {
+  private input: string;
+  private tokens: Token[];
+  private line: number;
+  private column: number;
+  private i: number;
 
-  while (i < input.length) {
-    const currentChar = input[i] as string;
-
-    // Whitespace
-    if (/\s/.test(currentChar)) {
-      const start = i;
-      const startCol = column;
-      while (i < input.length && /\s/.test(input[i] as string)) {
-        if (input[i] === "\n") {
-          line++;
-          column = 1;
-        } else {
-          column++;
-        }
-        i++;
-      }
-
-      tokens.push({
-        type: TokenCategory.WHITESPACE,
-        value: input.substring(start, i),
-        line,
-        column: startCol,
-      });
-
-      continue;
-    }
-
-    // Comment
-    if (currentChar === "/" && input[i + 1] === "/") {
-      const start = i;
-      const startCol = column;
-
-      while (i < input.length && input[i] !== "\n") {
-        i++;
-        column++;
-      }
-
-      tokens.push({
-        type: TokenCategory.COMMENT,
-        value: input.substring(start, i),
-        line,
-        column: startCol,
-      });
-
-      continue;
-    }
-
-    // Strings
-    if (currentChar === '"' || currentChar === "'") {
-      const quote = currentChar;
-      const start = i;
-      const startCol = column;
-      i++;
-      column++;
-
-      while (i < input.length && input[i] !== quote) {
-        if (input[i] === "\\") {
-          i++;
-          column++;
-        }
-        if (i < input.length) {
-          i++;
-          column++;
-        }
-      }
-      if (i < input.length) {
-        i++;
-        column++;
-      }
-
-      tokens.push({
-        type: TokenCategory.STRING,
-        value: input.substring(start, i),
-        line,
-        column: startCol,
-      });
-
-      continue;
-    }
-
-    // Numbers
-    if (/\d/.test(currentChar)) {
-      const start = i;
-      const startCol = column;
-
-      while (i < input.length && /\d/.test(input[i] as string)) {
-        i++;
-        column++;
-      }
-      if (i < input.length && input[i] === ".") {
-        i++;
-        column++;
-        while (i < input.length && /\d/.test(input[i] as string)) {
-          i++;
-          column++;
-        }
-      }
-
-      tokens.push({
-        type: TokenCategory.NUMBER,
-        value: input.substring(start, i),
-        line,
-        column: startCol,
-      });
-
-      continue;
-    }
-
-    // Identifiers and keywords
-    if (/[a-zA-Z_]/.test(currentChar)) {
-      const start = i;
-      const startCol = column;
-      while (i < input.length && /[a-zA-Z0-9_]/.test(input[i] as string)) {
-        i++;
-        column++;
-      }
-
-      const value = input.substring(start, i);
-      tokens.push({
-        type: KEYWORDS.has(value)
-          ? TokenCategory.KEYWORD
-          : TokenCategory.IDENTIFIER,
-        value,
-        line,
-        column: startCol,
-      });
-
-      continue;
-    }
-
-    // Operators
-    // Two-character operators
-    const twoChar = input.substring(i, i + 2);
-    if (OPERATORS.has(twoChar)) {
-      tokens.push({
-        type: TokenCategory.OPERATOR,
-        value: twoChar,
-        line,
-        column,
-      });
-      i += 2;
-      column += 2;
-
-      continue;
-    }
-
-    // Single-character operators
-    if (OPERATORS.has(currentChar)) {
-      tokens.push({
-        type: TokenCategory.OPERATOR,
-        value: currentChar,
-        line,
-        column,
-      });
-      i++;
-      column++;
-
-      continue;
-    }
-
-    // Punctuations
-    if (PUNCTUATIONS.has(currentChar)) {
-      tokens.push({
-        type: TokenCategory.PUNCTUATION,
-        value: currentChar,
-        line,
-        column,
-      });
-      i++;
-      column++;
-      continue;
-    }
-
-    tokens.push({
-      type: TokenCategory.UNKNOWN,
-      value: currentChar,
-      line,
-      column,
-    });
-    i++;
-    column++;
+  constructor(input: string) {
+    this.input = input;
+    this.tokens = [];
+    this.line = 1;
+    this.column = 1;
+    this.i = 0;
   }
 
-  return tokens;
-}
+  private isAtEnd(): boolean {
+    return this.i >= this.input.length;
+  }
 
-console.log(
-  LexicalAnalyzer(`open fold Sample
-sharp crease counter = 0;
-bend rate = 1.5;
-mark letter = 'A';
-corner flag = true;
-flat craft();
+  private peek(offset: number = 0): string | undefined {
+    return this.input[this.i + offset];
+  }
 
-mountain(counter < 5) {
-    pleat(crease i = 0; i < 3; i++) {
-        spiral(flag) {
-            flip;
-        }
+  tokenize(): Token[] {
+    while (!this.isAtEnd()) {
+      const currentChar = this.input[this.i] as string;
+
+      // Whitespace
+      if (/\s/.test(currentChar)) {
+        this.handleWhitespace();
+        continue;
+      }
+
+      // Comment
+      if (currentChar === "/" && this.peek(1) === "/") {
+        this.handleComment();
+        continue;
+      }
+
+      // Strings
+      if (currentChar === '"' || currentChar === "'") {
+        this.handleString(currentChar);
+        continue;
+      }
+
+      // Numbers
+      if (/\d/.test(currentChar)) {
+        this.handleNumber();
+        continue;
+      }
+
+      // Identifiers and keywords
+      if (/[a-zA-Z_]/.test(currentChar)) {
+        this.handleIdentifierOrKeyword();
+        continue;
+      }
+
+      // Operators
+      const twoChar = this.input.substring(this.i, this.i + 2);
+      if (OPERATORS.has(twoChar)) {
+        this.tokens.push({
+          type: TokenCategory.OPERATOR,
+          value: twoChar,
+          line: this.line,
+          column: this.column,
+        });
+        this.i += 2;
+        this.column += 2;
+        continue;
+      }
+
+      if (OPERATORS.has(currentChar)) {
+        this.tokens.push({
+          type: TokenCategory.OPERATOR,
+          value: currentChar,
+          line: this.line,
+          column: this.column,
+        });
+        this.i++;
+        this.column++;
+        continue;
+      }
+
+      // Punctuations
+      if (PUNCTUATIONS.has(currentChar)) {
+        this.tokens.push({
+          type: TokenCategory.PUNCTUATION,
+          value: currentChar,
+          line: this.line,
+          column: this.column,
+        });
+        this.i++;
+        this.column++;
+        continue;
+      }
+
+      this.tokens.push({
+        type: TokenCategory.UNKNOWN,
+        value: currentChar,
+        line: this.line,
+        column: this.column,
+      });
+      this.i++;
+      this.column++;
     }
-    valley {
-        tear;
+
+    return this.tokens;
+  }
+
+  private handleWhitespace(): void {
+    const start = this.i;
+    const startCol = this.column;
+    while (!this.isAtEnd() && /\s/.test(this.input[this.i] as string)) {
+      if (this.input[this.i] === "\n") {
+        this.line++;
+        this.column = 1;
+      } else {
+        this.column++;
+      }
+      this.i++;
     }
+
+    this.tokens.push({
+      type: TokenCategory.WHITESPACE,
+      value: this.input.substring(start, this.i),
+      line: this.line,
+      column: startCol,
+    });
+  }
+
+  private handleComment(): void {
+    const start = this.i;
+    const startCol = this.column;
+
+    while (!this.isAtEnd() && this.input[this.i] !== "\n") {
+      this.i++;
+      this.column++;
+    }
+
+    this.tokens.push({
+      type: TokenCategory.COMMENT,
+      value: this.input.substring(start, this.i),
+      line: this.line,
+      column: startCol,
+    });
+  }
+
+  private handleString(quote: string): void {
+    const start = this.i;
+    const startCol = this.column;
+    this.i++;
+    this.column++;
+
+    while (!this.isAtEnd() && this.input[this.i] !== quote) {
+      if (this.input[this.i] === "\\") {
+        this.i++;
+        this.column++;
+      }
+      if (!this.isAtEnd()) {
+        this.i++;
+        this.column++;
+      }
+    }
+    if (!this.isAtEnd()) {
+      this.i++;
+      this.column++;
+    }
+
+    this.tokens.push({
+      type: TokenCategory.STRING,
+      value: this.input.substring(start, this.i),
+      line: this.line,
+      column: startCol,
+    });
+  }
+
+  private handleNumber(): void {
+    const start = this.i;
+    const startCol = this.column;
+
+    while (!this.isAtEnd() && /\d/.test(this.input[this.i] as string)) {
+      this.i++;
+      this.column++;
+    }
+    if (!this.isAtEnd() && this.input[this.i] === ".") {
+      this.i++;
+      this.column++;
+      while (!this.isAtEnd() && /\d/.test(this.input[this.i] as string)) {
+        this.i++;
+        this.column++;
+      }
+    }
+
+    this.tokens.push({
+      type: TokenCategory.NUMBER,
+      value: this.input.substring(start, this.i),
+      line: this.line,
+      column: startCol,
+    });
+  }
+
+  private handleIdentifierOrKeyword(): void {
+    const start = this.i;
+    const startCol = this.column;
+    while (
+      !this.isAtEnd() &&
+      /[a-zA-Z0-9_]/.test(this.input[this.i] as string)
+    ) {
+      this.i++;
+      this.column++;
+    }
+
+    const value = this.input.substring(start, this.i);
+    this.tokens.push({
+      type: KEYWORDS.has(value)
+        ? TokenCategory.KEYWORD
+        : TokenCategory.IDENTIFIER,
+      value,
+      line: this.line,
+      column: startCol,
+    });
+  }
 }
 
-isolate(letter) {
-    pattern 'A':
-        draft {
-            smooth(mark e) {
-                crumple e;
-            }
-        }
-        unfold 1;
-    pattern 'B':
-        unfold 2;
-    center:
-        unfold 0;
-}
-
-crimp {
-    counter++;
-} spiral(counter < 10);
-
-sheet.counter = sheet.counter + 1;
-
-blank;
-seal crease CONST_VAL = 100;
-
-craft Sample2 = under Sample;
-
-`)
-);
+export default LexicalAnalyzer;
