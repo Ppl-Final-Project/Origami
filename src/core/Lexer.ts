@@ -1,5 +1,12 @@
 enum TokenCategory {
-  KEYWORD = "KEYWORD",
+  PRIMITIVE = "PRIMITIVE_DATA",
+  CONDITIONAL = "CONDITIONAL_STATEMENT",
+  LOOP = "LOOP",
+  JUMP = "JUMP STATEMENT",
+  EXCEPTION = "EXCEPTION_HANDLING",
+  STRUCTURE = "STRUCTURE",
+  VARIABLE = "VARIABLE_MODIFIER",
+  VALUE = "VALUE",
   IDENTIFIER = "IDENTIFIER",
   NUMBER = "NUMBER",
   OPERATOR = "OPERATOR",
@@ -11,7 +18,15 @@ enum TokenCategory {
 }
 
 type TokenType =
-  | TokenCategory.KEYWORD
+
+  | TokenCategory.PRIMITIVE
+  | TokenCategory.CONDITIONAL
+  | TokenCategory.LOOP
+  | TokenCategory.JUMP
+  | TokenCategory.EXCEPTION
+  | TokenCategory. STRUCTURE
+  | TokenCategory.VARIABLE
+  | TokenCategory.VALUE
   | TokenCategory.IDENTIFIER
   | TokenCategory.NUMBER
   | TokenCategory.OPERATOR
@@ -28,38 +43,46 @@ interface Token {
   column: number;
 }
 
-const KEYWORDS = new Set([
-  "corner",
-  "mark",
-  "grain",
-  "bend",
-  "crease",
-  "flat",
-  "pattern",
-  "center",
-  "valley",
-  "mountain",
-  "isolate",
-  "crimp",
-  "pleat",
-  "spiral",
-  "tear",
-  "flip",
-  "unfold",
-  "smooth",
-  "crumple",
-  "draft",
-  "fold",
-  "builds",
-  "craft",
-  "open",
-  "sharp",
-  "under",
-  "sheet",
-  "seal",
-  "blank",
-]);
+const KEYWORDS: Record<string, TokenCategory>= {
+  "corner": TokenCategory.PRIMITIVE,
+  "mark": TokenCategory.PRIMITIVE,
+  "grain": TokenCategory.PRIMITIVE,
+  "bend": TokenCategory.PRIMITIVE,
+  "crease": TokenCategory.PRIMITIVE,
+  "flat": TokenCategory.PRIMITIVE,
 
+  "pattern": TokenCategory.CONDITIONAL,
+  "center": TokenCategory.CONDITIONAL,
+  "valley": TokenCategory.CONDITIONAL,
+  "mountain": TokenCategory.CONDITIONAL,
+  "isolate": TokenCategory.CONDITIONAL,
+
+  "crimp": TokenCategory.LOOP,
+  "pleat": TokenCategory.LOOP,
+  "spiral": TokenCategory.LOOP,
+
+  "tear": TokenCategory.JUMP,
+  "flip": TokenCategory.JUMP,
+  "unfold": TokenCategory.JUMP,
+
+  "smooth": TokenCategory.EXCEPTION,
+  "crumple": TokenCategory.EXCEPTION,
+  "draft": TokenCategory.EXCEPTION,
+
+  "builds": TokenCategory.STRUCTURE,
+  "craft": TokenCategory.STRUCTURE,
+  "fold": TokenCategory.STRUCTURE,
+  "open": TokenCategory.STRUCTURE,
+  "sharp": TokenCategory.STRUCTURE,
+  "under": TokenCategory.STRUCTURE,
+  "sheet": TokenCategory.STRUCTURE,
+
+  "sealed": TokenCategory.VARIABLE,
+
+  "blank": TokenCategory.VALUE,
+  "aligned": TokenCategory.VALUE,
+  "misaligned": TokenCategory.VALUE,
+};
 const OPERATORS = new Set([
   // Arithmetic Operators
   "+",
@@ -309,11 +332,10 @@ class LexicalAnalyzer {
     }
 
     const value = this.input.substring(start, this.i);
+    const type = KEYWORDS[value] ||TokenCategory.IDENTIFIER;
     this.tokens.push({
-      type: KEYWORDS.has(value)
-        ? TokenCategory.KEYWORD
-        : TokenCategory.IDENTIFIER,
-      value,
+      type: type,
+      value: value,
       line: this.line,
       column: startCol,
     });
