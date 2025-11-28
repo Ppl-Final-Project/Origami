@@ -12,9 +12,11 @@ enum TokenCategory {
   OPERATOR = "OPERATOR",
   PUNCTUATION = "PUNCTUATION",
   STRING = "STRING",
+  FUNCTION = "FUNCTION",
   WHITESPACE = "WHITESPACE",
   COMMENT = "COMMENT",
   UNKNOWN = "UNKNOWN",
+  UNKNOWN_IDENTIFIER = "UNKNOWN_IDENTIFIER",
 }
 
 type TokenType =
@@ -24,17 +26,20 @@ type TokenType =
   | TokenCategory.LOOP
   | TokenCategory.JUMP
   | TokenCategory.EXCEPTION
-  | TokenCategory. STRUCTURE
+  | TokenCategory.STRUCTURE
   | TokenCategory.VARIABLE
   | TokenCategory.VALUE
+  | TokenCategory.FUNCTION
   | TokenCategory.IDENTIFIER
   | TokenCategory.NUMBER
   | TokenCategory.OPERATOR
   | TokenCategory.PUNCTUATION
   | TokenCategory.STRING
+  | TokenCategory.FUNCTION
   | TokenCategory.WHITESPACE
   | TokenCategory.COMMENT
-  | TokenCategory.UNKNOWN;
+  | TokenCategory.UNKNOWN
+  | TokenCategory.UNKNOWN_IDENTIFIER;
 
 interface Token {
   type: TokenType;
@@ -44,38 +49,38 @@ interface Token {
 }
 
 const KEYWORDS: Record<string, TokenCategory>= {
-  "corner": TokenCategory.PRIMITIVE,
+  "edge": TokenCategory.PRIMITIVE,
   "mark": TokenCategory.PRIMITIVE,
-  "grain": TokenCategory.PRIMITIVE,
-  "bend": TokenCategory.PRIMITIVE,
+  "thick": TokenCategory.PRIMITIVE,
+  "thin": TokenCategory.PRIMITIVE,
   "crease": TokenCategory.PRIMITIVE,
   "flat": TokenCategory.PRIMITIVE,
 
-  "pattern": TokenCategory.CONDITIONAL,
+  "figure": TokenCategory.CONDITIONAL,
   "center": TokenCategory.CONDITIONAL,
-  "valley": TokenCategory.CONDITIONAL,
-  "mountain": TokenCategory.CONDITIONAL,
+  "back": TokenCategory.CONDITIONAL,
+  "front": TokenCategory.CONDITIONAL,
   "isolate": TokenCategory.CONDITIONAL,
 
-  "crimp": TokenCategory.LOOP,
-  "pleat": TokenCategory.LOOP,
+  "work": TokenCategory.LOOP,
+  "layer": TokenCategory.LOOP,
   "spiral": TokenCategory.LOOP,
 
   "tear": TokenCategory.JUMP,
   "flip": TokenCategory.JUMP,
-  "unfold": TokenCategory.JUMP,
+  "reveal": TokenCategory.JUMP,
 
   "smooth": TokenCategory.EXCEPTION,
   "crumple": TokenCategory.EXCEPTION,
   "draft": TokenCategory.EXCEPTION,
 
-  "builds": TokenCategory.STRUCTURE,
   "craft": TokenCategory.STRUCTURE,
   "fold": TokenCategory.STRUCTURE,
   "open": TokenCategory.STRUCTURE,
-  "sharp": TokenCategory.STRUCTURE,
+  "inherit": TokenCategory.STRUCTURE,
   "under": TokenCategory.STRUCTURE,
   "sheet": TokenCategory.STRUCTURE,
+  "guide": TokenCategory.STRUCTURE,
 
   "sealed": TokenCategory.VARIABLE,
 
@@ -115,6 +120,7 @@ const OPERATORS = new Set([
   "&&",
   "||",
   "!",
+  "?.",
 ]);
 
 const PUNCTUATIONS = new Set([".", ";", ",", "(", ")", "{", "}", "[", "]"]);
@@ -148,7 +154,7 @@ class LexicalAnalyzer {
 
       // Whitespace
       if (/\s/.test(currentChar)) {
-        this.handleWhitespace();
+        this.skipWhitespace();
         continue;
       }
 
@@ -158,8 +164,8 @@ class LexicalAnalyzer {
         continue;
       }
 
-      // Strings
-      if (currentChar === '"' || currentChar === "'") {
+      // Strings (support backtick template strings)
+      if (currentChar === '"' || currentChar === "'" || currentChar === '`') {
         this.handleString(currentChar);
         continue;
       }
@@ -228,9 +234,7 @@ class LexicalAnalyzer {
     return this.tokens;
   }
 
-  private handleWhitespace(): void {
-    const start = this.i;
-    const startCol = this.column;
+  private skipWhitespace(): void {
     while (!this.isAtEnd() && /\s/.test(this.input[this.i] as string)) {
       if (this.input[this.i] === "\n") {
         this.line++;
@@ -240,13 +244,6 @@ class LexicalAnalyzer {
       }
       this.i++;
     }
-
-    this.tokens.push({
-      type: TokenCategory.WHITESPACE,
-      value: this.input.substring(start, this.i),
-      line: this.line,
-      column: startCol,
-    });
   }
 
   private handleComment(): void {
@@ -323,6 +320,8 @@ class LexicalAnalyzer {
   private handleIdentifierOrKeyword(): void {
     const start = this.i;
     const startCol = this.column;
+
+    // Consume identifier characters (letters, digits, underscore)
     while (
       !this.isAtEnd() &&
       /[a-zA-Z0-9_]/.test(this.input[this.i] as string)
@@ -332,10 +331,86 @@ class LexicalAnalyzer {
     }
 
     const value = this.input.substring(start, this.i);
-    const type = KEYWORDS[value] ||TokenCategory.IDENTIFIER;
+
+    // If it's a keyword, keep keyword category
+    if (KEYWORDS[value]) {
+      this.tokens.push({
+        type: KEYWORDS[value],
+        value,
+        line: this.line,
+        column: startCol,
+      });
+      return;
+    }
+
+    // Validation rules for identifiers
+    // - Must start with a letter
+    // - If length >= 2, second char must be letter or digit
+    // - After second char, allowed: letter, digit, underscore
+    // - Cannot begin or end with underscore
+    // - No characters other than [A-Za-z0-9_]
+    const raw = value;
+    const invalidChar = /[^A-Za-z0-9_]/.test(raw);
+    const startsWithLetter = /^[A-Za-z]/.test(raw);
+    const secondCharValid = raw.length < 2 || /^[A-Za-z0-9]$/.test(raw[1]);
+    const startsOrEndsWithUnderscore = /^_|_$/.test(raw);
+
+    if (invalidChar || !startsWithLetter || !secondCharValid || startsOrEndsWithUnderscore) {
+      this.tokens.push({
+        type: TokenCategory.UNKNOWN_IDENTIFIER,
+        value: raw,
+        line: this.line,
+        column: startCol,
+      });
+      return;
+    }
+
+    // Function/module naming rule (applies when identifier starts with UPPERCASE):
+    // - ALL UPPERCASE letters and digits
+    // - no underscore
+    // - must end with a digit (at least one)
+    // Example: BUILD1, MODULE2
+    const isFunction = /^[A-Z0-9]+$/.test(raw) && /\d$/.test(raw) && !raw.includes("_") && /[A-Z]/.test(raw);
+
+    // Variable naming: must start with a lowercase letter, then letters/digits/underscore allowed
+    const variablePattern = /^[a-z][A-Za-z0-9_]*$/;
+
+    // Enforce structural rule: identifiers that start with uppercase must follow function rules
+    if (/^[A-Z]/.test(raw)) {
+      if (isFunction) {
+        this.tokens.push({
+          type: TokenCategory.FUNCTION,
+          value: raw,
+          line: this.line,
+          column: startCol,
+        });
+        return;
+      }
+      // Uppercase-start but not a valid function name -> unknown identifier
+      this.tokens.push({
+        type: TokenCategory.UNKNOWN_IDENTIFIER,
+        value: raw,
+        line: this.line,
+        column: startCol,
+      });
+      return;
+    }
+
+    // Lowercase-start identifiers are variables
+    if (variablePattern.test(raw)) {
+      this.tokens.push({
+        type: TokenCategory.IDENTIFIER,
+        value: raw,
+        line: this.line,
+        column: startCol,
+      });
+      return;
+    }
+
+    // Fallback: unknown identifier format
     this.tokens.push({
-      type: type,
-      value: value,
+      type: TokenCategory.UNKNOWN_IDENTIFIER,
+      value: raw,
       line: this.line,
       column: startCol,
     });
