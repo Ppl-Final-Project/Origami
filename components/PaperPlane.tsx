@@ -7,7 +7,10 @@ interface PaperPlaneProps {
   size?: number;
 }
 
-export default function PaperPlane({ className = "", size = 100 }: PaperPlaneProps) {
+export default function PaperPlane({
+  className = "",
+  size = 100,
+}: PaperPlaneProps) {
   return (
     <motion.div
       className={`inline-block ${className}`}

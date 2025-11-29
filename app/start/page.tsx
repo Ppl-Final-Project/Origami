@@ -1,29 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
 import PaperPlane from "@/components/PaperPlane";
 
 export default function StartPage() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const router = useRouter();
 
   const handleStartClick = () => {
-    window.location.href = "/analyzer";
+    router.push("/analyzer");
   };
 
   return (
@@ -98,7 +83,10 @@ export default function StartPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 1.1 }}
         >
-          ORIGAMI - Fold Your Logic is a programming language designed to make coding both creative and structured. It visualizes each function, loop, and condition as a “fold” that contributes to a complete logical design, turning abstract code into something intuitive and elegant.
+          ORIGAMI - Fold Your Logic is a programming language designed to make
+          coding both creative and structured. It visualizes each function,
+          loop, and condition as a “fold” that contributes to a complete logical
+          design, turning abstract code into something intuitive and elegant.
         </motion.p>
 
         {/* Action Buttons */}
