@@ -1,51 +1,64 @@
-import { Token, TokenCategory } from "@/types";
+import { Token, TokenType } from "@/types";
 
-const KEYWORDS: Record<string, TokenCategory> = {
-  "edge": TokenCategory.PRIMITIVE,
-  "mark": TokenCategory.PRIMITIVE,
-  "thick": TokenCategory.PRIMITIVE,
-  "thin": TokenCategory.PRIMITIVE,
-  "crease": TokenCategory.PRIMITIVE,
-  "flat": TokenCategory.PRIMITIVE,
-
-  "figure": TokenCategory.CONDITIONAL,
-  "center": TokenCategory.CONDITIONAL,
-  "back": TokenCategory.CONDITIONAL,
-  "front": TokenCategory.CONDITIONAL,
-  "isolate": TokenCategory.CONDITIONAL,
-
-  "work": TokenCategory.LOOP,
-  "layer": TokenCategory.LOOP,
-  "spiral": TokenCategory.LOOP,
-
-  "tear": TokenCategory.JUMP,
-  "flip": TokenCategory.JUMP,
-  "reveal": TokenCategory.JUMP,
-
-  "smooth": TokenCategory.EXCEPTION,
-  "crumple": TokenCategory.EXCEPTION,
-  "draft": TokenCategory.EXCEPTION,
-
-  "craft": TokenCategory.STRUCTURE,
-  "fold": TokenCategory.STRUCTURE,
-  "open": TokenCategory.STRUCTURE,
-  "inherit": TokenCategory.STRUCTURE,
-  "under": TokenCategory.STRUCTURE,
-  "sheet": TokenCategory.STRUCTURE,
-  "guide": TokenCategory.STRUCTURE,
-
-  "sealed": TokenCategory.VARIABLE,
-
-  "blank": TokenCategory.VALUE,
-  "aligned": TokenCategory.VALUE,
-  "misaligned": TokenCategory.VALUE,
-};
+const KEYWORDS = new Set([
+  "edge",
+  "mark",
+  "thick",
+  "thin",
+  "crease",
+  "flat",
+  "figure",
+  "center",
+  "back",
+  "front",
+  "isolate",
+  "work",
+  "layer",
+  "spiral",
+  "tear",
+  "flip",
+  "reveal",
+  "smooth",
+  "crumple",
+  "draft",
+  "craft",
+  "fold",
+  "open",
+  "inherit",
+  "under",
+  "sheet",
+  "guide",
+  "sealed",
+  "blank",
+  "aligned",
+  "misaligned",
+]);
 
 const OPERATORS = new Set([
-  "+", "-", "*", "/", "%", "**", "++", "--",
-  "=", "+=", "-=", "*=", "/=", "%=", "**=",
-  "==", "!=", "<", ">", "<=", ">=",
-  "&&", "||", "!",
+  "+",
+  "-",
+  "*",
+  "/",
+  "%",
+  "**",
+  "++",
+  "--",
+  "=",
+  "+=",
+  "-=",
+  "*=",
+  "/=",
+  "%=",
+  "**=",
+  "==",
+  "!=",
+  "<",
+  ">",
+  "<=",
+  ">=",
+  "&&",
+  "||",
+  "!",
   "?.",
 ]);
 
@@ -84,11 +97,11 @@ class LexicalAnalyzer {
       }
 
       if (currentChar === "/" && this.peek(1) === "/") {
-        this.handleComment();
+        this.skipComment();
         continue;
       }
 
-      if (currentChar === '"' || currentChar === "'" || currentChar === '`') {
+      if (currentChar === '"' || currentChar === "'" || currentChar === "`") {
         this.handleString(currentChar);
         continue;
       }
@@ -106,7 +119,7 @@ class LexicalAnalyzer {
       const twoChar = this.input.substring(this.i, this.i + 2);
       if (OPERATORS.has(twoChar)) {
         this.tokens.push({
-          type: TokenCategory.OPERATOR,
+          type: TokenType.OPERATOR,
           value: twoChar,
           line: this.line,
           column: this.column,
@@ -118,7 +131,7 @@ class LexicalAnalyzer {
 
       if (OPERATORS.has(currentChar)) {
         this.tokens.push({
-          type: TokenCategory.OPERATOR,
+          type: TokenType.OPERATOR,
           value: currentChar,
           line: this.line,
           column: this.column,
@@ -130,7 +143,7 @@ class LexicalAnalyzer {
 
       if (PUNCTUATIONS.has(currentChar)) {
         this.tokens.push({
-          type: TokenCategory.PUNCTUATION,
+          type: TokenType.PUNCTUATION,
           value: currentChar,
           line: this.line,
           column: this.column,
@@ -141,7 +154,7 @@ class LexicalAnalyzer {
       }
 
       this.tokens.push({
-        type: TokenCategory.UNKNOWN,
+        type: TokenType.UNKNOWN,
         value: currentChar,
         line: this.line,
         column: this.column,
@@ -149,6 +162,13 @@ class LexicalAnalyzer {
       this.i++;
       this.column++;
     }
+
+    this.tokens.push({
+      type: TokenType.EOF,
+      value: "",
+      line: this.line,
+      column: this.column,
+    });
 
     return this.tokens;
   }
@@ -165,21 +185,11 @@ class LexicalAnalyzer {
     }
   }
 
-  private handleComment(): void {
-    const start = this.i;
-    const startCol = this.column;
-
+  private skipComment(): void {
     while (!this.isAtEnd() && this.input[this.i] !== "\n") {
       this.i++;
       this.column++;
     }
-
-    this.tokens.push({
-      type: TokenCategory.COMMENT,
-      value: this.input.substring(start, this.i),
-      line: this.line,
-      column: startCol,
-    });
   }
 
   private handleString(quote: string): void {
@@ -204,7 +214,7 @@ class LexicalAnalyzer {
     }
 
     this.tokens.push({
-      type: TokenCategory.STRING,
+      type: TokenType.STRING,
       value: this.input.substring(start, this.i),
       line: this.line,
       column: startCol,
@@ -229,7 +239,7 @@ class LexicalAnalyzer {
     }
 
     this.tokens.push({
-      type: TokenCategory.NUMBER,
+      type: TokenType.NUMBER,
       value: this.input.substring(start, this.i),
       line: this.line,
       column: startCol,
@@ -240,7 +250,6 @@ class LexicalAnalyzer {
     const start = this.i;
     const startCol = this.column;
 
-    // Consume identifier characters (letters, digits, underscore)
     while (
       !this.isAtEnd() &&
       /[a-zA-Z0-9_]/.test(this.input[this.i] as string)
@@ -251,10 +260,9 @@ class LexicalAnalyzer {
 
     const value = this.input.substring(start, this.i);
 
-    // If it's a keyword, keep keyword category
-    if (KEYWORDS[value]) {
+    if (KEYWORDS.has(value)) {
       this.tokens.push({
-        type: KEYWORDS[value],
+        type: TokenType.KEYWORD,
         value,
         line: this.line,
         column: startCol,
@@ -262,74 +270,9 @@ class LexicalAnalyzer {
       return;
     }
 
-    // Validation rules for identifiers
-    // - Must start with a letter
-    // - If length >= 2, second char must be letter or digit
-    // - After second char, allowed: letter, digit, underscore
-    // - Cannot begin or end with underscore
-    // - No characters other than [A-Za-z0-9_]
-    const raw = value;
-    const invalidChar = /[^A-Za-z0-9_]/.test(raw);
-    const startsWithLetter = /^[A-Za-z]/.test(raw);
-    const secondCharValid = raw.length < 2 || /^[A-Za-z0-9]$/.test(raw[1]);
-    const startsOrEndsWithUnderscore = /^_|_$/.test(raw);
-
-    if (invalidChar || !startsWithLetter || !secondCharValid || startsOrEndsWithUnderscore) {
-      this.tokens.push({
-        type: TokenCategory.UNKNOWN_IDENTIFIER,
-        value: raw,
-        line: this.line,
-        column: startCol,
-      });
-      return;
-    }
-
-    // Function/module naming rule (applies when identifier starts with UPPERCASE):
-    // - ALL UPPERCASE letters and digits
-    // - no underscore
-    // - must end with a digit (at least one)
-    // Example: BUILD1, MODULE2
-    const isFunction = /^[A-Z0-9]+$/.test(raw) && /\d$/.test(raw) && !raw.includes("_") && /[A-Z]/.test(raw);
-
-    // Variable naming: must start with a lowercase letter, then letters/digits/underscore allowed
-    const variablePattern = /^[a-z][A-Za-z0-9_]*$/;
-
-    // Enforce structural rule: identifiers that start with uppercase must follow function rules
-    if (/^[A-Z]/.test(raw)) {
-      if (isFunction) {
-        this.tokens.push({
-          type: TokenCategory.FUNCTION,
-          value: raw,
-          line: this.line,
-          column: startCol,
-        });
-        return;
-      }
-      // Uppercase-start but not a valid function name -> unknown identifier
-      this.tokens.push({
-        type: TokenCategory.UNKNOWN_IDENTIFIER,
-        value: raw,
-        line: this.line,
-        column: startCol,
-      });
-      return;
-    }
-
-    // Lowercase-start identifiers are variables
-    if (variablePattern.test(raw)) {
-      this.tokens.push({
-        type: TokenCategory.IDENTIFIER,
-        value: raw,
-        line: this.line,
-        column: startCol,
-      });
-      return;
-    }
-
-    // Fallback: unknown identifier format
     this.tokens.push({
-      type: TokenCategory.UNKNOWN_IDENTIFIER,
-      value: raw,
+      type: TokenType.IDENTIFIER,
+      value,
       line: this.line,
       column: startCol,
     });
