@@ -38,7 +38,7 @@ export default function LexicalAnalyzer() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-gray-900 text-black dark:text-white">
+    <div className="h-screen flex flex-col bg-white dark:bg-neutral-900 text-black dark:text-white">
       {/* Header */}
       <header className="border-b border-gray-300 dark:border-gray-700 p-4 flex justify-between items-center">
         <h1 className="text-2xl font-bold">ORIGAMI</h1>
@@ -77,7 +77,7 @@ export default function LexicalAnalyzer() {
               <h2 className="text-lg font-semibold">Code Editor</h2>
               <button
                 onClick={handleAnalyze}
-                className="px-4 py-2 rounded bg-green-500 hover:bg-green-600 text-white font-medium transition"
+                className="px-4 py-2 rounded bg-green-600 hover:bg-green-800 text-white font-medium transition"
               >
                 Analyze
               </button>

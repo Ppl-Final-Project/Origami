@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import PaperPlane from "@/components/PaperPlane";
+import PaperPlane from "@/components/Crane";
 
 export default function StartPage() {
   const router = useRouter();
@@ -15,9 +15,10 @@ export default function StartPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 flex flex-col items-center justify-center relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
+        {/* Left side dots */}
         {[...Array(6)].map((_, i) => (
           <motion.div
-            key={i}
+            key={`left-${i}`}
             className="absolute w-2 h-2 bg-blue-300 dark:bg-blue-600 rounded-full opacity-30"
             animate={{
               x: [0, 100, 200, 300, 400],
@@ -42,23 +43,64 @@ export default function StartPage() {
             }}
           />
         ))}
+        {/* Right side dots */}
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={`right-${i}`}
+            className="absolute w-2 h-2 bg-blue-300 dark:bg-blue-600 rounded-full opacity-30"
+            animate={{
+              x: [0, -100, -200, -300, -400],
+              y: [
+                80 + i * 90,
+                120 + i * 100,
+                60 + i * 85,
+                140 + i * 95,
+                100 + i * 110,
+              ],
+              scale: [1, 1.2, 1, 1.4, 1],
+            }}
+            transition={{
+              duration: 9 + i * 1.5,
+              repeat: Infinity,
+              delay: i * 0.6,
+              ease: "easeInOut",
+            }}
+            style={{
+              right: `${-10 + i * 15}%`,
+              top: `${15 + i * 14}%`,
+            }}
+          />
+        ))}
       </div>
 
       {/* Main Content */}
       <div className="text-center z-10 max-w-4xl px-6">
-        {/* Animated Paper Plane */}
+        {/* Animated Origami Logo */}
         <motion.div
           className="mb-8"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
         >
-          <PaperPlane size={120} className="mx-auto mb-4" />
+          <motion.img
+            src="/origamilogo.png"
+            alt="Origami Logo"
+            className="mx-auto mb-4 w-32 h-32 object-contain"
+            animate={{
+              y: [0, -15, 0, -8, 0],
+              rotate: [0, 3, -2, 1, 0],
+            }}
+            transition={{
+              duration: 5,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
         </motion.div>
 
         {/* Title */}
         <motion.h1
-          className="text-6xl md:text-8xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 dark:from-blue-400 dark:via-purple-400 dark:to-indigo-400 bg-clip-text text-transparent mb-6"
+          className="text-4xl md:text-5xl font-bold tracking-wide text-gray-800 dark:text-gray-100 mx-auto mb-4"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.5 }}
@@ -83,7 +125,7 @@ export default function StartPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 1.1 }}
         >
-          ORIGAMI - Fold Your Logic is a programming language designed to make
+          Fold Your Logic is a programming language designed to make
           coding both creative and structured. It visualizes each function,
           loop, and condition as a “fold” that contributes to a complete logical
           design, turning abstract code into something intuitive and elegant.
@@ -141,7 +183,49 @@ export default function StartPage() {
             ease: "linear",
           }}
         >
-          <PaperPlane size={60} className="opacity-20" />
+          <img
+            src="/origamilogo.png"
+            alt="Origami"
+            className="w-16 h-16 opacity-20 object-contain"
+          />
+        </motion.div>
+      </div>
+
+      <div className="absolute top-32 left-16">
+        <motion.div
+          animate={{
+            rotate: -360,
+            y: [-12, 12, -12],
+          }}
+          transition={{
+            rotate: { duration: 23, repeat: Infinity, ease: "linear" },
+            y: { duration: 4.5, repeat: Infinity, ease: "easeInOut" },
+          }}
+        >
+          <img
+            src="/origamilogo.png"
+            alt="Origami"
+            className="w-11 h-11 opacity-12 object-contain"
+          />
+        </motion.div>
+      </div>
+
+      <div className="absolute bottom-1/3 left-24">
+        <motion.div
+          animate={{
+            rotate: 360,
+            x: [-8, 8, -8],
+          }}
+          transition={{
+            rotate: { duration: 19, repeat: Infinity, ease: "linear" },
+            x: { duration: 3.5, repeat: Infinity, ease: "easeInOut" },
+          }}
+        >
+          <img
+            src="/origamilogo.png"
+            alt="Origami"
+            className="w-9 h-9 opacity-10 object-contain"
+          />
         </motion.div>
       </div>
 
@@ -156,7 +240,49 @@ export default function StartPage() {
             y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
           }}
         >
-          <PaperPlane size={40} className="opacity-15" />
+          <img
+            src="/origamilogo.png"
+            alt="Origami"
+            className="w-10 h-10 opacity-15 object-contain"
+          />
+        </motion.div>
+      </div>
+
+      <div className="absolute top-1/3 right-10">
+        <motion.div
+          animate={{
+            rotate: 360,
+            x: [-5, 5, -5],
+          }}
+          transition={{
+            rotate: { duration: 18, repeat: Infinity, ease: "linear" },
+            x: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+          }}
+        >
+          <img
+            src="/origamilogo.png"
+            alt="Origami"
+            className="w-12 h-12 opacity-10 object-contain"
+          />
+        </motion.div>
+      </div>
+
+      <div className="absolute bottom-1/4 right-32">
+        <motion.div
+          animate={{
+            rotate: -360,
+            y: [-15, 15, -15],
+          }}
+          transition={{
+            rotate: { duration: 22, repeat: Infinity, ease: "linear" },
+            y: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+          }}
+        >
+          <img
+            src="/origamilogo.png"
+            alt="Origami"
+            className="w-8 h-8 opacity-12 object-contain"
+          />
         </motion.div>
       </div>
     </div>
