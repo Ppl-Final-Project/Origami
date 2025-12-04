@@ -5,7 +5,7 @@ import { Token } from "@/types";
 interface TableProps {
   tokens: Token[];
 }
-// TODO: Colors for the types are still subject to change
+
 export default function Table({ tokens }: TableProps) {
   const getTokenColor = (tokenType: string) => {
     switch (tokenType) {

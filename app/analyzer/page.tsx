@@ -38,72 +38,69 @@ export default function LexicalAnalyzer() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-neutral-900 text-black dark:text-white">
-      {/* Header */}
-      <header className="border-b border-gray-300 dark:border-gray-700 p-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">ORIGAMI</h1>
-        <div className="flex items-center gap-4">
+    <div className="h-screen flex flex-col bg-[#02367B] dark:bg-[#02367B] text-white dark:text-white">
+  {/* Header */}
+  <header className="h-16 border-b border-gray-700/50 px-4 flex justify-between items-center backdrop-blur-sm bg-black/20">
+    <img
+        src="/mainlogo.png"
+        alt="Origami"
+        className="w-60 h-60 object-contain"
+      />
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => router.push("/")}
+        className="flex items-center gap-2 px-4 py-2 rounded bg-gradient-to-r from-[#006CA5] to-[#0496C7] hover:from-[#0496C7] hover:to-[#04BADE] text-white transition group"
+        title="Back to Start">
+        <img
+          src="/arrow-uturn-left.png"
+          alt="Back"
+          className="w-5 h-5 transform group-hover:scale-110 transition-transform filter brightness-0 invert"
+        />
+        <span className="hidden sm:inline">Back</span>
+      </button>
+      <button
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        className="px-4 py-2 rounded bg-white/20 hover:bg-white/30 transition backdrop-blur-sm">
+        <img
+          src={theme === "dark" ? "/light.png" : "/dark.png"}
+          alt="toggle theme"
+          className="w-5 h-5 filter brightness-0 invert"
+        />
+      </button>
+    </div>
+  </header>
+
+  {/* Split View */}
+  <div className="flex-1 flex overflow-hidden">
+    {/* Left: Code Editor */}
+    <div className="w-1/2 border-r border-gray-700/50 flex flex-col p-4">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-lg font-semibold">Code Editor</h2>
           <button
-            onClick={() => router.push("/")}
-            className="flex items-center gap-2 px-4 py-2 rounded bg-blue-500 hover:bg-blue-600 text-white transition group"
-            title="Back to Start"
-          >
-            <img
-              src="/arrow-uturn-left.png"
-              alt="Back"
-              className="w-5 h-5 transform group-hover:scale-110 transition-transform filter brightness-0 invert"
-            />
-            <span className="hidden sm:inline">Back</span>
-          </button>
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-          >
-            <img
-              src={theme === "dark" ? "/light.png" : "/dark.png"}
-              alt="toggle theme"
-              className="w-5 h-5 transform group-hover:scale-110 transition-transform filter brightness-0 invert"
-            />
+            onClick={handleAnalyze}
+            className="px-4 py-2 rounded bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium transition shadow-lg hover:shadow-xl">
+            Analyze
           </button>
         </div>
-      </header>
-
-      {/* Split View */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left: Code Editor */}
-        <div className="w-1/2 border-r border-gray-300 dark:border-gray-700">
-          <div className="h-full p-4">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold">Code Editor</h2>
-              <button
-                onClick={handleAnalyze}
-                className="px-4 py-2 rounded bg-green-600 hover:bg-green-800 text-white font-medium transition"
-              >
-                Analyze
-              </button>
-            </div>
-            <div className="h-[calc(100%-2rem)] border border-gray-300 dark:border-gray-700 rounded overflow-hidden">
-              <CodeSandbox
-                value={code}
-                onChange={setCode}
-                theme={theme as "light" | "dark"}
-              />
-            </div>
-          </div>
+        <div className="flex-1 border border-gray-700/50 rounded overflow-hidden shadow-lg backdrop-blur-sm bg-black/30">
+          <CodeSandbox
+            value={code}
+            onChange={setCode}
+            theme={theme as "light" | "dark"}
+          />
         </div>
+    </div>
 
-        {/* Right: Token Table */}
-        <div className="w-1/2">
-          <div className="h-full p-4">
-            <h2 className="text-lg font-semibold mb-2">
-              Tokens ({tokens.length})
-            </h2>
-            <div className="h-[calc(100%-2rem)] border border-gray-300 dark:border-gray-700 rounded overflow-hidden">
-              <Table tokens={tokens} />
-            </div>
-          </div>
+    {/* Right: Token Table */}
+    <div className="w-1/2 flex flex-col p-4">
+        <h2 className="text-lg font-semibold mb-5">
+          Tokens ({tokens.length})
+        </h2>
+        <div className="flex-1 border border-gray-700/50 rounded overflow-hidden shadow-lg backdrop-blur-sm bg-black/30">
+          <Table tokens={tokens} />
         </div>
       </div>
     </div>
+</div>
   );
 }

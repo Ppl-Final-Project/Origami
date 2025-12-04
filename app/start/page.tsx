@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import PaperPlane from "@/components/Crane";
 
 export default function StartPage() {
   const router = useRouter();
@@ -77,15 +76,15 @@ export default function StartPage() {
       <div className="text-center z-10 max-w-4xl px-6">
         {/* Animated Origami Logo */}
         <motion.div
-          className="mb-8"
+          className="mb-0 -mt-40"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
         >
           <motion.img
-            src="/origamilogo.png"
+            src="/mainlogo.png"
             alt="Origami Logo"
-            className="mx-auto mb-4 w-32 h-32 object-contain"
+            className="mx-auto -mb-60 object-contain"
             animate={{
               y: [0, -15, 0, -8, 0],
               rotate: [0, 3, -2, 1, 0],
@@ -98,37 +97,16 @@ export default function StartPage() {
           />
         </motion.div>
 
-        {/* Title */}
-        <motion.h1
-          className="text-4xl md:text-5xl font-bold tracking-wide text-gray-800 dark:text-gray-100 mx-auto mb-4"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5 }}
-        >
-          ORIGAMI
-        </motion.h1>
-
-        {/* Subtitle */}
-        <motion.p
-          className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-4 font-light"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.8 }}
-        >
-          Lexical Analyzer
-        </motion.p>
-
         {/* Description */}
         <motion.p
-          className="text-lg text-gray-500 dark:text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed"
+          className="text-lg text-gray-500 dark:text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed -mt-30"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 1.1 }}
         >
-          Fold Your Logic is a programming language designed to make
-          coding both creative and structured. It visualizes each function,
-          loop, and condition as a “fold” that contributes to a complete logical
-          design, turning abstract code into something intuitive and elegant.
+          The programming language aims to make coding both creative and structured. It visualizes each function, loop, 
+          and condition as a “fold” that contributes to a complete logical design, transforming abstract code into something 
+          intuitive and elegant.
         </motion.p>
 
         {/* Action Buttons */}
@@ -139,7 +117,7 @@ export default function StartPage() {
           transition={{ duration: 1, delay: 1.4 }}
         >
           <motion.button
-            className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 min-w-[200px]"
+            className="px-8 py-4 bg-[#006CA5] hover:bg-[#02367B] text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 min-w-[200px]"
             onClick={handleStartClick}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -184,9 +162,9 @@ export default function StartPage() {
           }}
         >
           <img
-            src="/origamilogo.png"
+            src="/solologo.png"
             alt="Origami"
-            className="w-16 h-16 opacity-20 object-contain"
+            className="w-50 h-50 opacity-20 object-contain"
           />
         </motion.div>
       </div>
@@ -203,9 +181,9 @@ export default function StartPage() {
           }}
         >
           <img
-            src="/origamilogo.png"
+            src="/solologo.png"
             alt="Origami"
-            className="w-11 h-11 opacity-12 object-contain"
+            className="w-50 h-50 opacity-12 object-contain"
           />
         </motion.div>
       </div>
@@ -260,9 +238,9 @@ export default function StartPage() {
           }}
         >
           <img
-            src="/origamilogo.png"
+            src="/solologo.png"
             alt="Origami"
-            className="w-12 h-12 opacity-10 object-contain"
+            className="w-60 h-60 opacity-10 object-contain"
           />
         </motion.div>
       </div>
