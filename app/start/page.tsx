@@ -162,7 +162,7 @@ export default function StartPage() {
           }}
         >
           <img
-            src="/solologo.png"
+            src="/soloLogo.png"
             alt="Origami"
             className="w-50 h-50 opacity-20 object-contain"
           />
@@ -181,7 +181,7 @@ export default function StartPage() {
           }}
         >
           <img
-            src="/solologo.png"
+            src="/soloLogo.png"
             alt="Origami"
             className="w-50 h-50 opacity-12 object-contain"
           />
@@ -238,7 +238,7 @@ export default function StartPage() {
           }}
         >
           <img
-            src="/solologo.png"
+            src="/soloLogo.png"
             alt="Origami"
             className="w-60 h-60 opacity-10 object-contain"
           />
