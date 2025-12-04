@@ -44,7 +44,7 @@ export default function LexicalAnalyzer() {
     <img
         src="/mainlogo.png"
         alt="Origami"
-        className="w-60 h-60 object-contain"
+        className="w-40 h-40 object-contain"
       />
     <div className="flex items-center gap-4">
       <button

@@ -84,7 +84,7 @@ export default function StartPage() {
           <motion.img
             src="/mainlogo.png"
             alt="Origami Logo"
-            className="mx-auto -mb-60 object-contain"
+            className="mx-auto -mb-40 object-contain"
             animate={{
               y: [0, -15, 0, -8, 0],
               rotate: [0, 3, -2, 1, 0],
