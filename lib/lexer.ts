@@ -1,37 +1,53 @@
 import { Token, TokenType } from "@/types";
 
 const KEYWORDS = new Set([
+  // Variable types
   "edge",
   "mark",
   "thick",
   "thin",
   "crease",
   "flat",
+  
+  // Control flow
   "figure",
   "center",
   "back",
   "front",
   "isolate",
+  
+  // Loops
   "work",
-  "layer",
+  "layer",        
   "spiral",
+  "as",          
+  
+  // State manipulation
   "tear",
   "flip",
   "reveal",
   "smooth",
   "crumple",
+  
+  // Functions & structures
   "draft",
   "craft",
   "fold",
+  "unfold",
   "open",
   "inherit",
-  "under",
+  "attach",        
+  
+  // Declarations
   "sheet",
   "guide",
   "sealed",
   "blank",
+  
+  // Boolean values
   "aligned",
   "misaligned",
+  "under",
 ]);
 
 const OPERATORS = new Set([
@@ -60,6 +76,7 @@ const OPERATORS = new Set([
   "||",
   "!",
   "?.",
+  "->",
 ]);
 
 const PUNCTUATIONS = new Set([".", ";", ",", "(", ")", "{", "}", "[", "]"]);
@@ -193,33 +210,60 @@ class LexicalAnalyzer {
   }
 
   private handleString(quote: string): void {
-    const start = this.i;
-    const startCol = this.column;
-    this.i++;
-    this.column++;
+  const start = this.i;
+  const startCol = this.column;
+  const isTemplateLiteral = quote === "`";
+  this.i++;
+  this.column++;
 
-    while (!this.isAtEnd() && this.input[this.i] !== quote) {
-      if (this.input[this.i] === "\\") {
-        this.i++;
-        this.column++;
-      }
+  while (!this.isAtEnd() && this.input[this.i] !== quote) {
+    // Handle escape sequences
+    if (this.input[this.i] === "\\") {
+      this.i++;
+      this.column++;
       if (!this.isAtEnd()) {
         this.i++;
         this.column++;
       }
+      continue;
     }
+
+    if (
+      isTemplateLiteral &&
+      this.input[this.i] === "$" &&
+      this.peek(1) === "{"
+    ) {
+      this.i += 2; // Skip ${
+      this.column += 2;
+
+      let braceDepth = 1;
+      while (!this.isAtEnd() && braceDepth > 0) {
+        if (this.input[this.i] === "{") braceDepth++;
+        if (this.input[this.i] === "}") braceDepth--;
+        this.i++;
+        this.column++;
+      }
+      continue;
+    }
+
     if (!this.isAtEnd()) {
       this.i++;
       this.column++;
     }
-
-    this.tokens.push({
-      type: TokenType.STRING,
-      value: this.input.substring(start, this.i),
-      line: this.line,
-      column: startCol,
-    });
   }
+
+  if (!this.isAtEnd()) {
+    this.i++;
+    this.column++;
+  }
+
+  this.tokens.push({
+    type: isTemplateLiteral ? TokenType.TEMPLATE_LITERAL : TokenType.STRING,
+    value: this.input.substring(start, this.i),
+    line: this.line,
+    column: startCol,
+  });
+}
 
   private handleNumber(): void {
     const start = this.i;

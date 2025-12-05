@@ -9,6 +9,7 @@ export enum TokenType {
   WHITESPACE = "WHITESPACE",
   EOF = "EOF",
   UNKNOWN = "UNKNOWN",
+  TEMPLATE_LITERAL = "TEMPLATE_LITERAL",
 }
 
 export interface Token {
