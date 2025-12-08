@@ -36,7 +36,8 @@ const KEYWORDS = new Set([
   "unfold",
   "open",
   "inherit",
-  "attach",        
+  "attach", 
+  "blueprint",       
   
   // Declarations
   "sheet",
