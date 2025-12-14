@@ -1,5 +1,6 @@
 import { Token, TokenType } from "@/types";
 
+// Keywords
 const KEYWORDS = new Set([
   // Variable types
   "edge",
@@ -37,6 +38,7 @@ const KEYWORDS = new Set([
   "open",
   "inherit",
   "attach", 
+  "out",
   "blueprint",       
   
   // Declarations
@@ -51,43 +53,30 @@ const KEYWORDS = new Set([
   "under",
 ]);
 
+// Operators
 const OPERATORS = new Set([
-  "+",
-  "-",
-  "*",
-  "/",
-  "%",
-  "**",
-  "++",
-  "--",
-  "=",
-  "+=",
-  "-=",
-  "*=",
-  "/=",
-  "%=",
-  "**=",
-  "==",
-  "!=",
-  "<",
-  ">",
-  "<=",
-  ">=",
-  "&&",
-  "||",
-  "!",
-  "?.",
-  "->",
+  "+", "-", "*", "/", "%", "**",      // Arithmetic
+  "++", "--",                          // Increment/Decrement
+  "=", "+=", "-=", "*=", "/=", "%=", "**=",  // Assignment
+  "==", "!=", "<", ">", "<=", ">=",   // Comparison
+  "&&", "||", "!",                     // Logical
+  "->",                                // Function attachment
+  "?", ":",                            // Ternary operators
 ]);
 
+// Define punctuation - structural symbols
 const PUNCTUATIONS = new Set([".", ";", ",", "(", ")", "{", "}", "[", "]"]);
 
+/**
+ * LexicalAnalyzer class - converts raw source code into a stream of tokens
+ * This is the first phase of compilation/interpretation
+ */
 class LexicalAnalyzer {
-  private input: string;
-  private tokens: Token[];
-  private line: number;
-  private column: number;
-  private i: number;
+  private input: string;      // Source code to tokenize
+  private tokens: Token[];    // Array to store generated tokens
+  private line: number;       // Current line number (for error reporting)
+  private column: number;     // Current column number (for error reporting)
+  private i: number;          // Current position in input string
 
   constructor(input: string) {
     this.input = input;
@@ -97,43 +86,58 @@ class LexicalAnalyzer {
     this.i = 0;
   }
 
+  // Check if end of input has been reached
   private isAtEnd(): boolean {
     return this.i >= this.input.length;
   }
 
+  // Look ahead at upcoming characters without moving position
   private peek(offset: number = 0): string | undefined {
     return this.input[this.i + offset];
   }
 
+  // Main loop that processes input character by character and generates tokens
   tokenize(): Token[] {
     while (!this.isAtEnd()) {
       const currentChar = this.input[this.i] as string;
 
+      // Skip whitespace (spaces, tabs, newlines)
       if (/\s/.test(currentChar)) {
         this.skipWhitespace();
         continue;
       }
 
+      // Skip single-line comments
       if (currentChar === "/" && this.peek(1) === "/") {
         this.skipComment();
         continue;
       }
 
+      // Skip multi-line comments
+      if (currentChar === "/" && this.peek(1) === "*") {
+        this.skipMultiLineComment();
+        continue;
+      }
+
+      // Handle string literals (double quotes, single quotes, or backticks)
       if (currentChar === '"' || currentChar === "'" || currentChar === "`") {
         this.handleString(currentChar);
         continue;
       }
 
+      // Handle numeric literals
       if (/\d/.test(currentChar)) {
         this.handleNumber();
         continue;
       }
 
+      // Handle identifiers and keywords
       if (/[a-zA-Z_]/.test(currentChar)) {
         this.handleIdentifierOrKeyword();
         continue;
       }
 
+      // Check for two-character operators first
       const twoChar = this.input.substring(this.i, this.i + 2);
       if (OPERATORS.has(twoChar)) {
         this.tokens.push({
@@ -147,6 +151,7 @@ class LexicalAnalyzer {
         continue;
       }
 
+      // Check for single-character operators
       if (OPERATORS.has(currentChar)) {
         this.tokens.push({
           type: TokenType.OPERATOR,
@@ -159,6 +164,7 @@ class LexicalAnalyzer {
         continue;
       }
 
+      // Handle punctuation marks
       if (PUNCTUATIONS.has(currentChar)) {
         this.tokens.push({
           type: TokenType.PUNCTUATION,
@@ -171,6 +177,7 @@ class LexicalAnalyzer {
         continue;
       }
 
+      // Handle unrecognized characters
       this.tokens.push({
         type: TokenType.UNKNOWN,
         value: currentChar,
@@ -181,6 +188,7 @@ class LexicalAnalyzer {
       this.column++;
     }
 
+    // Add End of File token to mark completion
     this.tokens.push({
       type: TokenType.EOF,
       value: "",
@@ -191,6 +199,7 @@ class LexicalAnalyzer {
     return this.tokens;
   }
 
+  // Skip whitespace
   private skipWhitespace(): void {
     while (!this.isAtEnd() && /\s/.test(this.input[this.i] as string)) {
       if (this.input[this.i] === "\n") {
@@ -203,6 +212,7 @@ class LexicalAnalyzer {
     }
   }
 
+  // Skip single-line comments until newline
   private skipComment(): void {
     while (!this.isAtEnd() && this.input[this.i] !== "\n") {
       this.i++;
@@ -210,70 +220,101 @@ class LexicalAnalyzer {
     }
   }
 
-  private handleString(quote: string): void {
-  const start = this.i;
-  const startCol = this.column;
-  const isTemplateLiteral = quote === "`";
-  this.i++;
-  this.column++;
+  // Skip multi-line comments until closing */
+  private skipMultiLineComment(): void {
+    this.i += 2;
+    this.column += 2;
 
-  while (!this.isAtEnd() && this.input[this.i] !== quote) {
-    // Handle escape sequences
-    if (this.input[this.i] === "\\") {
+    while (!this.isAtEnd()) {
+      if (this.input[this.i] === "*" && this.peek(1) === "/") {
+        this.i += 2;
+        this.column += 2;
+        return;
+      }
+
+      if (this.input[this.i] === "\n") {
+        this.line++;
+        this.column = 1;
+      } else {
+        this.column++;
+      }
       this.i++;
-      this.column++;
+    }
+  }
+
+  // Process strings and template literals, handling escapes and ${} interpolations
+  private handleString(quote: string): void {
+    const start = this.i;
+    const startCol = this.column;
+    const isTemplateLiteral = quote === "`";
+    this.i++;
+    this.column++;
+
+    // Continue until we find the closing quote
+    while (!this.isAtEnd() && this.input[this.i] !== quote) {
+      // Handle escape sequences (\n, \t, \", etc.)
+      if (this.input[this.i] === "\\") {
+        this.i++;
+        this.column++;
+        if (!this.isAtEnd()) {
+          this.i++;
+          this.column++;
+        }
+        continue;
+      }
+
+      // Handle template literal interpolations ${...}
+      if (
+        isTemplateLiteral &&
+        this.input[this.i] === "$" &&
+        this.peek(1) === "{"
+      ) {
+        this.i += 2;
+        this.column += 2;
+
+        // Track nested braces to find matching closing brace
+        let braceDepth = 1;
+        while (!this.isAtEnd() && braceDepth > 0) {
+          if (this.input[this.i] === "{") braceDepth++;
+          if (this.input[this.i] === "}") braceDepth--;
+          this.i++;
+          this.column++;
+        }
+        continue;
+      }
+
       if (!this.isAtEnd()) {
         this.i++;
         this.column++;
       }
-      continue;
     }
 
-    if (
-      isTemplateLiteral &&
-      this.input[this.i] === "$" &&
-      this.peek(1) === "{"
-    ) {
-      this.i += 2; // Skip ${
-      this.column += 2;
-
-      let braceDepth = 1;
-      while (!this.isAtEnd() && braceDepth > 0) {
-        if (this.input[this.i] === "{") braceDepth++;
-        if (this.input[this.i] === "}") braceDepth--;
-        this.i++;
-        this.column++;
-      }
-      continue;
-    }
-
+    // Consume closing quote if present
     if (!this.isAtEnd()) {
       this.i++;
       this.column++;
     }
+
+    this.tokens.push({
+      type: isTemplateLiteral ? TokenType.TEMPLATE_LITERAL : TokenType.STRING,
+      value: this.input.substring(start, this.i),
+      line: this.line,
+      column: startCol,
+    });
   }
 
-  if (!this.isAtEnd()) {
-    this.i++;
-    this.column++;
-  }
-
-  this.tokens.push({
-    type: isTemplateLiteral ? TokenType.TEMPLATE_LITERAL : TokenType.STRING,
-    value: this.input.substring(start, this.i),
-    line: this.line,
-    column: startCol,
-  });
-}
-
+  // Process numeric literals including decimals
   private handleNumber(): void {
     const start = this.i;
     const startCol = this.column;
 
+    // Consume integer part
     while (!this.isAtEnd() && /\d/.test(this.input[this.i] as string)) {
       this.i++;
       this.column++;
     }
+    
+    // Handle decimal point and fractional part
     if (!this.isAtEnd() && this.input[this.i] === ".") {
       this.i++;
       this.column++;
@@ -291,10 +332,12 @@ class LexicalAnalyzer {
     });
   }
 
+  // Process identifiers and check if they're keywords
   private handleIdentifierOrKeyword(): void {
     const start = this.i;
     const startCol = this.column;
 
+    // Consume all valid identifier characters
     while (
       !this.isAtEnd() &&
       /[a-zA-Z0-9_]/.test(this.input[this.i] as string)
@@ -305,6 +348,7 @@ class LexicalAnalyzer {
 
     const value = this.input.substring(start, this.i);
 
+    // Determine if this is a keyword or regular identifier
     if (KEYWORDS.has(value)) {
       this.tokens.push({
         type: TokenType.KEYWORD,
@@ -324,6 +368,7 @@ class LexicalAnalyzer {
   }
 }
 
+// Entry point to tokenize source code
 export function analyze(input: string): Token[] {
   const lexer = new LexicalAnalyzer(input);
   return lexer.tokenize();

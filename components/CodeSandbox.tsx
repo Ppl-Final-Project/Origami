@@ -19,18 +19,13 @@ const origamiTokensProvider = {
   tokenizer: {
     root: [
       [
-        /\b(open|fold|edge|thick|thin|mark|crease|flat|figure|center|work|layer|spiral|flip|reveal|front|back|sealed|craft|draft|tear|smooth|crumple)\b/,
+        /\b(fold|unfold|edge|mark|thick|thin|crease|flat|figure|center|back|front|isolate|work|layer|spiral|tear|flip|reveal|smooth|crumple|draft|blueprint|inherit|craft|open|guide|under|sheet|sealed|attach|out|Strip)\b/,
         "keyword",
       ],
 
       [
-        /\b(length|width|height|angle|surface|label|template|aligned)\b/,
+        /\b(aligned|misaligned|blank)\b/,
         "type",
-      ],
-
-      [
-        /\b(if|else|for|while|do|switch|case|default|break|continue|return)\b/,
-        "keyword.control",
       ],
 
       [/[=!<>]=?/, "operator"],
