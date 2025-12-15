@@ -69,7 +69,6 @@ const PUNCTUATIONS = new Set([".", ";", ",", "(", ")", "{", "}", "[", "]"]);
 
 /**
  * LexicalAnalyzer class - converts raw source code into a stream of tokens
- * This is the first phase of compilation/interpretation
  */
 class LexicalAnalyzer {
   private input: string;      // Source code to tokenize
@@ -132,7 +131,7 @@ class LexicalAnalyzer {
       }
 
       // Handle identifiers and keywords
-      if (/[a-zA-Z_]/.test(currentChar)) {
+      if (/[a-zA-Z]/.test(currentChar)) {
         this.handleIdentifierOrKeyword();
         continue;
       }
@@ -167,7 +166,7 @@ class LexicalAnalyzer {
       // Handle punctuation marks
       if (PUNCTUATIONS.has(currentChar)) {
         this.tokens.push({
-          type: TokenType.PUNCTUATION,
+          type: TokenType.SEPARATOR,
           value: currentChar,
           line: this.line,
           column: this.column,
@@ -342,9 +341,25 @@ class LexicalAnalyzer {
       !this.isAtEnd() &&
       /[a-zA-Z0-9_]/.test(this.input[this.i] as string)
     ) {
+      // Stop if we encounter consecutive underscores
+      if (
+        this.input[this.i] === "_" &&
+        this.i > start &&
+        this.input[this.i - 1] === "_"
+      ) {
+        break;
+      }
       this.i++;
       this.column++;
     }
+
+    // Back up if the identifier ends with underscore(s)
+    let end = this.i;
+    while (end > start && this.input[end - 1] === "_") {
+      end--;
+      this.column--;
+    }
+    this.i = end;
 
     const value = this.input.substring(start, this.i);
 
