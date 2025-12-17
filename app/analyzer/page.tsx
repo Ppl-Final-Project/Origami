@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import CodeSandbox from "@/components/CodeSandbox";
+import CodeSandbox, { CodeSandboxHandle } from "@/components/CodeSandbox";
 import Table from "@/components/Table";
 import { analyze } from "@/lib/lexer";
 import { Token } from "@/types";
@@ -14,6 +14,7 @@ export default function LexicalAnalyzer() {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+	const sandboxRef = useRef<CodeSandboxHandle>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -36,6 +37,23 @@ export default function LexicalAnalyzer() {
     const result = analyze(code);
     setTokens(result);
   };
+	const downloadFile = () => {
+		const content = sandboxRef.current?.getValue() ?? "";
+
+		// workarounds to avoid downloading a new library for saving a file.
+		const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+		const url = URL.createObjectURL(blob);
+
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = "program.ori";
+		document.body.appendChild(a);
+		a.click();
+
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	}
+
 
   return (
     <div className="h-screen flex flex-col bg-[#02367B] dark:bg-[#02367B] text-white dark:text-white">
@@ -74,21 +92,35 @@ export default function LexicalAnalyzer() {
   <div className="flex-1 flex overflow-hidden">
     {/* Left: Code Editor */}
     <div className="w-1/2 border-r border-gray-700/50 flex flex-col p-4">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-semibold">Code Editor</h2>
-          <button
-            onClick={handleAnalyze}
-            className="px-4 py-2 rounded bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium transition shadow-lg hover:shadow-xl">
-            Analyze
-          </button>
-        </div>
-        <div className="flex-1 border border-gray-700/50 rounded overflow-hidden shadow-lg backdrop-blur-sm bg-black/30">
-          <CodeSandbox
-            value={code}
-            onChange={setCode}
-            theme={theme as "light" | "dark"}
-          />
-        </div>
+			{/* top menu */}
+    	<div className="flex justify-between items-center mb-2">
+      	<h2 className="text-lg font-semibold">Code Editor</h2>
+					<div className="flex flex-row gap-2">
+						<button
+							onClick={handleAnalyze}
+							className="px-4 py-2 rounded bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium transition shadow-lg hover:shadow-xl">
+						Analyze
+						</button>
+						<button
+							onClick={downloadFile}
+							className="px-2 py-2 rounded bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium transition shadow-lg hover:shadow-xl">
+								<img
+									src="/download-icon.png"
+									alt="Download"
+									className="w-7 h-7 transform group-hover:scale-110 transition-transform filter brightness-0 invert"
+								/>
+						</button>
+					</div>
+			</div>
+
+			<div className="flex-1 border border-gray-700/50 rounded overflow-hidden shadow-lg backdrop-blur-sm bg-black/30">
+				<CodeSandbox
+					ref={sandboxRef}
+					value={code}
+					onChange={setCode}
+					theme={theme as "light" | "dark"}
+				/>
+			</div>
     </div>
 
     {/* Right: Token Table */}

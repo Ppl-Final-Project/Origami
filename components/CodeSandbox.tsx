@@ -1,6 +1,8 @@
 "use client";
+
 // Recognizes Origami Language in the Editor
 import Editor from "@monaco-editor/react";
+import { forwardRef, useImperativeHandle, useRef } from "react";
 
 interface CodeSandboxProps {
   value: string;
@@ -49,41 +51,47 @@ const origamiTokensProvider = {
   },
 };
 
-export default function CodeSandbox({
-  value,
-  onChange,
-  theme,
-}: CodeSandboxProps) {
-  const handleEditorDidMount = (_editor: any, monaco: any) => {
-    if (
-      !monaco.languages
-        .getLanguages()
-        .find((lang: any) => lang.id === "origami")
-    ) {
-      monaco.languages.register(origamiLanguageConfig);
-      monaco.languages.setMonarchTokensProvider(
-        "origami",
-        origamiTokensProvider
-      );
-    }
-  };
-
-  return (
-    <Editor
-      key={theme}
-      height="100%"
-      defaultLanguage="origami"
-      value={value}
-      onChange={(value) => onChange(value || "")}
-      theme={theme === "dark" ? "vs-dark" : "vs"}
-      onMount={handleEditorDidMount}
-      options={{
-        minimap: { enabled: true },
-        fontSize: 14,
-        lineNumbers: "on",
-        scrollBeyondLastLine: false,
-        automaticLayout: true,
-      }}
-    />
-  );
+export interface CodeSandboxHandle {
+  getValue: () => string;
 }
+
+// grabbing a reference to get the contents of the code box.
+const CodeSandbox = forwardRef<CodeSandboxHandle, CodeSandboxProps>(
+  ({ value, onChange, theme }, ref) => {
+    const editorRef = useRef<any>(null);
+
+    const handleEditorDidMount = (editor: any, monaco: any) => {
+      editorRef.current = editor;
+
+      if (
+        !monaco.languages
+          .getLanguages()
+          .find((lang: any) => lang.id === "origami")
+      ) {
+        monaco.languages.register(origamiLanguageConfig);
+        monaco.languages.setMonarchTokensProvider(
+          "origami",
+          origamiTokensProvider
+        );
+      }
+    };
+
+    useImperativeHandle(ref, () => ({
+      getValue: () => editorRef.current?.getValue() ?? "",
+    }));
+
+    return (
+      <Editor
+        key={theme}
+        height="100%"
+        defaultLanguage="origami"
+        value={value}
+        onChange={(v) => onChange(v || "")}
+        theme={theme === "dark" ? "vs-dark" : "vs"}
+        onMount={handleEditorDidMount}
+      />
+    );
+  }
+);
+
+export default CodeSandbox;
