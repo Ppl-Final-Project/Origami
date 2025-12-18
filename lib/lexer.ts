@@ -1,81 +1,116 @@
 import { Token, TokenType } from "@/types";
 
 // Keywords
-const KEYWORDS = new Set([
+const KEYWORDS: Record<string, TokenType> = {
   // Variable types
-  "edge",
-  "mark",
-  "thick",
-  "thin",
-  "crease",
-  "flat",
+  edge: TokenType.EDGE,
+  mark: TokenType.MARK,
+  thick: TokenType.THICK,
+  thin: TokenType.THIN,
+  crease: TokenType.CREASE,
+  flat: TokenType.FLAT,
   
   // Control flow
-  "figure",
-  "center",
-  "back",
-  "front",
-  "isolate",
+  figure: TokenType.FIGURE,
+  center: TokenType.CENTER,
+  back: TokenType.BACK,
+  front: TokenType.FRONT,
+  isolate: TokenType.ISOLATE,
   
   // Loops
-  "work",
-  "layer",        
-  "spiral",
-  "as",          
+  work: TokenType.WORK,
+  layer: TokenType.LAYER,
+  spiral: TokenType.SPIRAL,
+  as: TokenType.AS,
   
   // State manipulation
-  "tear",
-  "flip",
-  "reveal",
-  "smooth",
-  "crumple",
+  tear: TokenType.TEAR,
+  flip: TokenType.FLIP,
+  reveal: TokenType.REVEAL,
+  smooth: TokenType.SMOOTH,
+  crumple: TokenType.CRUMPLE,
   
   // Functions & structures
-  "draft",
-  "craft",
-  "fold",
-  "unfold",
-  "open",
-  "inherit",
-  "attach", 
-  "out",
-  "blueprint",       
+  draft: TokenType.DRAFT,
+  craft: TokenType.CRAFT,
+  fold: TokenType.FOLD,
+  unfold: TokenType.UNFOLD,
+  open: TokenType.OPEN,
+  inherit: TokenType.INHERIT,
+  attach: TokenType.ATTACH,
+  out: TokenType.OUT,
+  blueprint: TokenType.BLUEPRINT,
   
   // Declarations
-  "sheet",
-  "guide",
-  "sealed",
-  "blank",
+  sheet: TokenType.SHEET,
+  guide: TokenType.GUIDE,
+  sealed: TokenType.SEALED,
+  blank: TokenType.BLANK,
   
   // Boolean values
-  "aligned",
-  "misaligned",
-  "under",
-]);
+  aligned: TokenType.ALIGNED,
+  misaligned: TokenType.MISALIGNED,
+  under: TokenType.UNDER,
+};
 
 // Operators
-const OPERATORS = new Set([
-  "+", "-", "*", "/", "%", "**",      // Arithmetic
-  "++", "--",                          // Increment/Decrement
-  "=", "+=", "-=", "*=", "/=", "%=", "**=",  // Assignment
-  "==", "!=", "<", ">", "<=", ">=",   // Comparison
-  "&&", "||", "!",                     // Logical
-  "->",                                // Function attachment
-  "?", ":",                            // Ternary operators
-]);
+const OPERATORS: Record<string, TokenType> = {
+  // Three-character operators
+  "**=": TokenType.POWER_ASSIGN,
+  
+  // Two-character operators
+  "**": TokenType.POWER,
+  "++": TokenType.INCREMENT,
+  "--": TokenType.DECREMENT,
+  "+=": TokenType.PLUS_ASSIGN,
+  "-=": TokenType.MINUS_ASSIGN,
+  "*=": TokenType.MULTIPLY_ASSIGN,
+  "/=": TokenType.DIVIDE_ASSIGN,
+  "%=": TokenType.MODULO_ASSIGN,
+  "==": TokenType.EQUAL,
+  "!=": TokenType.NOT_EQUAL,
+  "<=": TokenType.LESS_EQUAL,
+  ">=": TokenType.GREATER_EQUAL,
+  "&&": TokenType.AND,
+  "||": TokenType.OR,
+  "->": TokenType.ARROW,
+  
+  // Single-character operators
+  "+": TokenType.PLUS,
+  "-": TokenType.MINUS,
+  "*": TokenType.MULTIPLY,
+  "/": TokenType.DIVIDE,
+  "%": TokenType.MODULO,
+  "=": TokenType.ASSIGN,
+  "<": TokenType.LESS_THAN,
+  ">": TokenType.GREATER_THAN,
+  "!": TokenType.NOT,
+  "?": TokenType.QUESTION,
+  ":": TokenType.COLON,
+};
 
-// Define punctuation - structural symbols
-const PUNCTUATIONS = new Set([".", ";", ",", "(", ")", "{", "}", "[", "]"]);
+// Punctuation
+const PUNCTUATIONS: Record<string, TokenType> = {
+  ".": TokenType.DOT,
+  ";": TokenType.SEMICOLON,
+  ",": TokenType.COMMA,
+  "(": TokenType.LPAREN,
+  ")": TokenType.RPAREN,
+  "{": TokenType.LBRACE,
+  "}": TokenType.RBRACE,
+  "[": TokenType.LBRACKET,
+  "]": TokenType.RBRACKET,
+};
 
 /**
  * LexicalAnalyzer class - converts raw source code into a stream of tokens
  */
 class LexicalAnalyzer {
-  private input: string;      // Source code to tokenize
-  private tokens: Token[];    // Array to store generated tokens
-  private line: number;       // Current line number (for error reporting)
-  private column: number;     // Current column number (for error reporting)
-  private i: number;          // Current position in input string
+  private input: string;
+  private tokens: Token[];
+  private line: number;
+  private column: number;
+  private i: number;
 
   constructor(input: string) {
     this.input = input;
@@ -136,11 +171,25 @@ class LexicalAnalyzer {
         continue;
       }
 
-      // Check for two-character operators first
-      const twoChar = this.input.substring(this.i, this.i + 2);
-      if (OPERATORS.has(twoChar)) {
+      // Check for three-character operators first
+      const threeChar = this.input.substring(this.i, this.i + 3);
+      if (threeChar in OPERATORS) {
         this.tokens.push({
-          type: TokenType.OPERATOR,
+          type: OPERATORS[threeChar],
+          value: threeChar,
+          line: this.line,
+          column: this.column,
+        });
+        this.i += 3;
+        this.column += 3;
+        continue;
+      }
+
+      // Check for two-character operators
+      const twoChar = this.input.substring(this.i, this.i + 2);
+      if (twoChar in OPERATORS) {
+        this.tokens.push({
+          type: OPERATORS[twoChar],
           value: twoChar,
           line: this.line,
           column: this.column,
@@ -151,9 +200,9 @@ class LexicalAnalyzer {
       }
 
       // Check for single-character operators
-      if (OPERATORS.has(currentChar)) {
+      if (currentChar in OPERATORS) {
         this.tokens.push({
-          type: TokenType.OPERATOR,
+          type: OPERATORS[currentChar],
           value: currentChar,
           line: this.line,
           column: this.column,
@@ -164,9 +213,9 @@ class LexicalAnalyzer {
       }
 
       // Handle punctuation marks
-      if (PUNCTUATIONS.has(currentChar)) {
+      if (currentChar in PUNCTUATIONS) {
         this.tokens.push({
-          type: TokenType.SEPARATOR,
+          type: PUNCTUATIONS[currentChar],
           value: currentChar,
           line: this.line,
           column: this.column,
@@ -363,13 +412,13 @@ class LexicalAnalyzer {
 
     const value = this.input.substring(start, this.i);
 
-    // Determine if this is a keyword or regular identifier
-    if (KEYWORDS.has(value)) {
+    // Check if it's a keyword and get its specific token type
+    if (value in KEYWORDS) {
       this.tokens.push({
-        type: TokenType.KEYWORD,
-        value,
+        type: KEYWORDS[value],
         line: this.line,
         column: startCol,
+        value,
       });
       return;
     }
