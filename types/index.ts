@@ -6,6 +6,7 @@ export enum TokenType {
   THIN = "THIN",
   CREASE = "CREASE",
   FLAT = "FLAT",
+  STRIP = "STRIP",
   
   // Control flow keywords
   FIGURE = "FIGURE",
@@ -104,6 +105,9 @@ export enum TokenType {
   NUMBER = "NUMBER",
   STRING = "STRING",
   TEMPLATE_LITERAL = "TEMPLATE_LITERAL",
+
+  // Reserved words
+  KACHI = "KACHI",
   
   // Special tokens
   EOF = "EOF",

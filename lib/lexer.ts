@@ -9,6 +9,7 @@ const KEYWORDS: Record<string, TokenType> = {
   thin: TokenType.THIN,
   crease: TokenType.CREASE,
   flat: TokenType.FLAT,
+  Strip: TokenType.STRIP,
   
   // Control flow
   figure: TokenType.FIGURE,
@@ -46,6 +47,9 @@ const KEYWORDS: Record<string, TokenType> = {
   guide: TokenType.GUIDE,
   sealed: TokenType.SEALED,
   blank: TokenType.BLANK,
+
+  // Reserved words
+  kachi: TokenType.KACHI,
   
   // Boolean values
   aligned: TokenType.ALIGNED,
