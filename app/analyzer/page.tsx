@@ -40,7 +40,24 @@ export default function LexicalAnalyzer() {
   };
 
   const downloadFile = () => {
-    const content = sandboxRef.current?.getValue() ?? "";
+    let content = "LEXICAL ANALYSIS RESULTS\n";
+    content += "========================\n\n";
+    content += `Total Tokens: ${tokens.length}\n\n`;
+    
+    content += "───────────────────────────────────────────────────────────────────────────────\n";
+    content += "│ Lexeme                               │ Token                                │ Line     │ Column   │\n";
+    content += "───────────────────────────────────────────────────────────────────────────────\n";
+    
+    tokens.forEach((token) => {
+      const lexeme = token.value.padEnd(27).substring(0, 27);
+      const tokenType = token.type.padEnd(27).substring(0, 27);
+      const line = String(token.line).padStart(6);
+      const column = String(token.column).padStart(6);
+      
+      content += `│ ${lexeme}          │ ${tokenType}          │ ${line}   │ ${column}   │\n`;
+    });
+    
+    content += "───────────────────────────────────────────────────────────────────────────────\n";
 
     // workarounds to avoid downloading a new library for saving a file.
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -48,7 +65,7 @@ export default function LexicalAnalyzer() {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = "program.ori";
+    a.download = "lexical_analysis_output.txt";
     document.body.appendChild(a);
     a.click();
 
