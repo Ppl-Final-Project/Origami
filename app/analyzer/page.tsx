@@ -6,11 +6,13 @@ import { useTheme } from "next-themes";
 import CodeSandbox, { CodeSandboxHandle } from "@/components/CodeSandbox";
 import Table from "@/components/Table";
 import { analyze } from "@/lib/lexer";
-import { Token } from "@/types";
+import { parse } from "@/lib/parser";
+import { Token, ParseError } from "@/types";
 
 export default function LexicalAnalyzer() {
   const [code, setCode] = useState("");
   const [tokens, setTokens] = useState<Token[]>([]);
+  const [errors, setErrors] = useState<ParseError[]>([]);
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
   const router = useRouter();
@@ -37,12 +39,15 @@ export default function LexicalAnalyzer() {
   const handleAnalyze = () => {
     const result = analyze(code);
     setTokens(result);
+
+    const parseResult = parse(result);
+    setErrors(parseResult.errors);
   };
 
   const downloadFile = () => {
     const content = sandboxRef.current?.getValue() ?? "";
 
-    // workarounds to avoid downloading a new library for saving a file.
+    // Workarounds to avoid downloading a new library for saving a file
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
 
@@ -78,7 +83,11 @@ export default function LexicalAnalyzer() {
     <div className="h-screen flex flex-col bg-[#02367B] dark:bg-[#02367B] text-white dark:text-white">
       {/* Header */}
       <header className="h-16 border-b border-gray-700/50 px-4 flex justify-between items-center backdrop-blur-sm bg-black/20">
-        <img src="/mainlogo.png" alt="Origami" className="w-40 h-40 object-contain" />
+        <img
+          src="/mainlogo.png"
+          alt="Origami"
+          className="w-40 h-40 object-contain"
+        />
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/")}
@@ -159,13 +168,16 @@ export default function LexicalAnalyzer() {
               value={code}
               onChange={setCode}
               theme={theme as "light" | "dark"}
+              errors={errors}
             />
           </div>
         </div>
 
         {/* Right: Token Table */}
         <div className="w-1/2 flex flex-col p-4">
-          <h2 className="text-lg font-semibold mb-5">Tokens ({tokens.length})</h2>
+          <h2 className="text-lg font-semibold mb-5">
+            Tokens ({tokens.length})
+          </h2>
           <div className="flex-1 border border-gray-700/50 rounded overflow-hidden shadow-lg backdrop-blur-sm bg-black/30">
             <Table tokens={tokens} />
           </div>

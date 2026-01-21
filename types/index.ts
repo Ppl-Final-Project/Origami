@@ -7,27 +7,27 @@ export enum TokenType {
   CREASE = "CREASE",
   FLAT = "FLAT",
   STRIP = "STRIP",
-  
+
   // Control flow keywords
   FIGURE = "FIGURE",
   CENTER = "CENTER",
   BACK = "BACK",
   FRONT = "FRONT",
   ISOLATE = "ISOLATE",
-  
+
   // Loop keywords
   WORK = "WORK",
   LAYER = "LAYER",
   SPIRAL = "SPIRAL",
   AS = "AS",
-  
+
   // State manipulation keywords
   TEAR = "TEAR",
   FLIP = "FLIP",
   REVEAL = "REVEAL",
   SMOOTH = "SMOOTH",
   CRUMPLE = "CRUMPLE",
-  
+
   // Function & structure keywords
   DRAFT = "DRAFT",
   CRAFT = "CRAFT",
@@ -38,18 +38,18 @@ export enum TokenType {
   ATTACH = "ATTACH",
   OUT = "OUT",
   BLUEPRINT = "BLUEPRINT",
-  
+
   // Declaration keywords
   SHEET = "SHEET",
   GUIDE = "GUIDE",
   SEALED = "SEALED",
   BLANK = "BLANK",
-  
+
   // Boolean literals
   ALIGNED = "ALIGNED",
   MISALIGNED = "MISALIGNED",
   UNDER = "UNDER",
-  
+
   // Arithmetic operators
   PLUS = "PLUS",
   MINUS = "MINUS",
@@ -57,11 +57,11 @@ export enum TokenType {
   DIVIDE = "DIVIDE",
   MODULO = "MODULO",
   POWER = "POWER",
-  
+
   // Increment/Decrement
   INCREMENT = "INCREMENT",
   DECREMENT = "DECREMENT",
-  
+
   // Assignment operators
   ASSIGN = "ASSIGN",
   PLUS_ASSIGN = "PLUS_ASSIGN",
@@ -70,7 +70,7 @@ export enum TokenType {
   DIVIDE_ASSIGN = "DIVIDE_ASSIGN",
   MODULO_ASSIGN = "MODULO_ASSIGN",
   POWER_ASSIGN = "POWER_ASSIGN",
-  
+
   // Comparison operators
   EQUAL = "EQUAL",
   NOT_EQUAL = "NOT_EQUAL",
@@ -78,17 +78,17 @@ export enum TokenType {
   GREATER_THAN = "GREATER_THAN",
   LESS_EQUAL = "LESS_EQUAL",
   GREATER_EQUAL = "GREATER_EQUAL",
-  
+
   // Logical operators
   AND = "AND",
   OR = "OR",
   NOT = "NOT",
-  
+
   // Special operators
   ARROW = "ARROW",
   QUESTION = "QUESTION",
   COLON = "COLON",
-  
+
   // Punctuation/Separators
   DOT = "DOT",
   SEMICOLON = "SEMICOLON",
@@ -99,7 +99,7 @@ export enum TokenType {
   RBRACE = "RBRACE",
   LBRACKET = "LBRACKET",
   RBRACKET = "RBRACKET",
-  
+
   // Literals
   IDENTIFIER = "IDENTIFIER",
   NUMBER = "NUMBER",
@@ -108,7 +108,7 @@ export enum TokenType {
 
   // Reserved words
   KACHI = "KACHI",
-  
+
   // Special tokens
   EOF = "EOF",
   UNKNOWN = "UNKNOWN",
@@ -119,4 +119,20 @@ export interface Token {
   value: string;
   line: number;
   column: number;
+}
+
+export interface ParseError {
+  line: number;
+  column: number;
+  message: string;
+  expected?: string;
+  found?: string;
+  length: number;
+  severity: "error" | "warning";
+}
+
+export interface ParseResult {
+  success: boolean;
+  errors: ParseError[];
+  ast?: any; // Abstract Syntax Tree (to be implemented)
 }

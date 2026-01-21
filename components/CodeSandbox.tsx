@@ -2,12 +2,14 @@
 
 // Recognizes Origami Language in the Editor
 import Editor from "@monaco-editor/react";
-import { forwardRef, useImperativeHandle, useRef } from "react";
+import { forwardRef, useImperativeHandle, useRef, useEffect } from "react";
+import { ParseError } from "@/types";
 
 interface CodeSandboxProps {
   value: string;
   onChange: (value: string) => void;
   theme: "light" | "dark";
+  errors?: ParseError[];
 }
 
 const origamiLanguageConfig = {
@@ -25,10 +27,7 @@ const origamiTokensProvider = {
         "keyword",
       ],
 
-      [
-        /\b(aligned|misaligned|blank)\b/,
-        "type",
-      ],
+      [/\b(aligned|misaligned|blank)\b/, "type"],
 
       [/[=!<>]=?/, "operator"],
       [/[+\-*\/++--]/, "operator"],
@@ -57,11 +56,13 @@ export interface CodeSandboxHandle {
 
 // grabbing a reference to get the contents of the code box.
 const CodeSandbox = forwardRef<CodeSandboxHandle, CodeSandboxProps>(
-  ({ value, onChange, theme }, ref) => {
+  ({ value, onChange, theme, errors = [] }, ref) => {
     const editorRef = useRef<any>(null);
+    const monacoRef = useRef<any>(null);
 
     const handleEditorDidMount = (editor: any, monaco: any) => {
       editorRef.current = editor;
+      monacoRef.current = monaco;
 
       if (
         !monaco.languages
@@ -71,10 +72,29 @@ const CodeSandbox = forwardRef<CodeSandboxHandle, CodeSandboxProps>(
         monaco.languages.register(origamiLanguageConfig);
         monaco.languages.setMonarchTokensProvider(
           "origami",
-          origamiTokensProvider
+          origamiTokensProvider,
         );
       }
     };
+
+    // Update error markers when errors change
+    useEffect(() => {
+      if (editorRef.current && monacoRef.current) {
+        const model = editorRef.current.getModel();
+        if (model) {
+          const markers = errors.map((error) => ({
+            severity: monacoRef.current.MarkerSeverity.Error,
+            startLineNumber: error.line,
+            startColumn: error.column,
+            endLineNumber: error.line,
+            endColumn: error.column + (error.length || 1),
+            message: error.message,
+            source: "Origami Parser",
+          }));
+          monacoRef.current.editor.setModelMarkers(model, "origami", markers);
+        }
+      }
+    }, [errors]);
 
     useImperativeHandle(ref, () => ({
       getValue: () => editorRef.current?.getValue() ?? "",
@@ -91,7 +111,7 @@ const CodeSandbox = forwardRef<CodeSandboxHandle, CodeSandboxProps>(
         onMount={handleEditorDidMount}
       />
     );
-  }
+  },
 );
 
 export default CodeSandbox;
