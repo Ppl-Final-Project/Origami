@@ -14,6 +14,7 @@ import {
 } from "@/types";
 import { OrigamiParser } from "./extension";
 
+/*
 class Parser {
   private tokens: Token[];
   private current: number = 0;
@@ -488,6 +489,7 @@ class Parser {
     return this.tokens[index];
   }
 }
+*/
 
 // Entry point for parsing a list of tokens
 export function parse(tokens: Token[]): ParseResult {
