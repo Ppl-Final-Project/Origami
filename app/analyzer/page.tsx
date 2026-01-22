@@ -7,12 +7,16 @@ import CodeSandbox, { CodeSandboxHandle } from "@/components/CodeSandbox";
 import Table from "@/components/Table";
 import { analyze } from "@/lib/lexer";
 import { parse } from "@/lib/parser";
-import { Token, ParseError } from "@/types";
+import { Token, ParseError, Program } from "@/types";
+
+type ViewTab = "tokens" | "parse";
 
 export default function LexicalAnalyzer() {
   const [code, setCode] = useState("");
   const [tokens, setTokens] = useState<Token[]>([]);
   const [errors, setErrors] = useState<ParseError[]>([]);
+  const [ast, setAst] = useState<Program | null>(null);
+  const [activeTab, setActiveTab] = useState<ViewTab>("tokens");
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
   const router = useRouter();
@@ -42,27 +46,32 @@ export default function LexicalAnalyzer() {
 
     const parseResult = parse(result);
     setErrors(parseResult.errors);
+    setAst(parseResult.ast);
   };
 
   const downloadFile = () => {
     let content = "LEXICAL ANALYSIS RESULTS\n";
     content += "========================\n\n";
     content += `Total Tokens: ${tokens.length}\n\n`;
-    
-    content += "───────────────────────────────────────────────────────────────────────────────\n";
-    content += "│ Lexeme                               │ Token                                │ Line     │ Column   │\n";
-    content += "───────────────────────────────────────────────────────────────────────────────\n";
-    
+
+    content +=
+      "───────────────────────────────────────────────────────────────────────────────\n";
+    content +=
+      "│ Lexeme                               │ Token                                │ Line     │ Column   │\n";
+    content +=
+      "───────────────────────────────────────────────────────────────────────────────\n";
+
     tokens.forEach((token) => {
       const lexeme = token.value.padEnd(27).substring(0, 27);
       const tokenType = token.type.padEnd(27).substring(0, 27);
       const line = String(token.line).padStart(6);
       const column = String(token.column).padStart(6);
-      
+
       content += `│ ${lexeme}          │ ${tokenType}          │ ${line}   │ ${column}   │\n`;
     });
-    
-    content += "───────────────────────────────────────────────────────────────────────────────\n";
+
+    content +=
+      "───────────────────────────────────────────────────────────────────────────────\n";
 
     // Workarounds to avoid downloading a new library for saving a file
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -190,13 +199,91 @@ export default function LexicalAnalyzer() {
           </div>
         </div>
 
-        {/* Right: Token Table */}
+        {/* Right: Token Table / Parse Tree */}
         <div className="w-1/2 flex flex-col p-4">
-          <h2 className="text-lg font-semibold mb-5">
-            Tokens ({tokens.length})
-          </h2>
+          {/* Tab Buttons */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setActiveTab("tokens")}
+              className={`flex-1 px-4 py-2 rounded font-medium transition ${
+                activeTab === "tokens"
+                  ? "bg-gradient-to-r from-[#006CA5] to-[#0496C7] text-white shadow-lg"
+                  : "bg-white/10 text-white/70 hover:bg-white/20"
+              }`}
+            >
+              Tokens ({tokens.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("parse")}
+              className={`flex-1 px-4 py-2 rounded font-medium transition ${
+                activeTab === "parse"
+                  ? "bg-gradient-to-r from-[#006CA5] to-[#0496C7] text-white shadow-lg"
+                  : "bg-white/10 text-white/70 hover:bg-white/20"
+              }`}
+            >
+              Parse Tree {errors.length > 0 && `(${errors.length} errors)`}
+            </button>
+          </div>
+
+          {/* Content Area */}
           <div className="flex-1 border border-gray-700/50 rounded overflow-hidden shadow-lg backdrop-blur-sm bg-black/30">
-            <Table tokens={tokens} />
+            {activeTab === "tokens" ? (
+              <Table tokens={tokens} />
+            ) : (
+              <div className="h-full overflow-auto p-4">
+                {errors.length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-red-400 mb-2">
+                      Parse Errors:
+                    </h3>
+                    <div className="space-y-2">
+                      {errors.map((error, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-red-500/10 border border-red-500/30 rounded p-3"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="text-red-400 font-mono text-sm">
+                              Line {error.line}:{error.column}
+                            </span>
+                            <span className="text-red-300 text-sm flex-1">
+                              {error.message}
+                            </span>
+                          </div>
+                          {error.expected && error.found && (
+                            <div className="mt-1 text-xs text-red-300/70">
+                              Expected: {error.expected}, Found: {error.found}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {ast && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-green-400 mb-2">
+                      Abstract Syntax Tree:
+                    </h3>
+                    <pre className="bg-black/40 rounded p-4 overflow-auto text-sm font-mono text-gray-300 border border-gray-700/50">
+                      {JSON.stringify(ast, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {!ast && errors.length === 0 && (
+                  <div className="h-full flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <p className="text-lg mb-2">No parse results yet</p>
+                      <p className="text-sm">
+                        Click "Analyze" to parse the code
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
