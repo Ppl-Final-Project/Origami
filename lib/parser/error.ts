@@ -5,4 +5,10 @@ export class ErrorHandler {
   public addError(error: ParseError) {
     this.errors.push(error);
   }
+  public clearErrors() {
+    this.errors = [];
+  }
+  public getErrors() {
+    return structuredClone(this.errors);
+  }
 }

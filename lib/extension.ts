@@ -4,60 +4,56 @@ import {
   Statement,
   ASTNodeType,
   TokenType,
+  Token,
 } from "@/types";
-import { ParserBase } from "./parser/base";
-import { StatementParserMixin } from "./parser/statement";
-import { ExpressionParserMixin } from "./parser/expression";
-import { HelperParserMixin } from "./parser/helpers";
+import { ErrorHandler } from "./parser/error";
+import { ExpressionParser } from "./parser/expression";
+import { TokenStream } from "./parser/helpers";
+import { PrimaryParser } from "./parser/primaries";
+import { StatementParser } from "./parser/statement";
 
 /*
 *
 A harsh refactor from the one file version.
-
-Make a new file and create a function:
-
-```ts
-export function ExpressionParserMixin<
-  TBase extends new (...args: any[]) => ParserBase,
->(Base: TBase) {
-  return class extends Base { // your main class.
-    parseExpression() {}
-    parseLiteral() {}
-    parseBinary() {}
-  };
-}
-```
-
-Put that function in the OrigamiParser:
-	export class OrigamiParser extends ParserBase
-to:
-	export class OrigamiParser extends ExpressionParserMixin(ParserBase)
-
-If you want to make a feature,
-	either make helper functions in the pre-existing mixins
-	or if the feature is BIG, make another mixin as shown above.
-Do note that **order matters**. Statements should be below Expressions, and etc.
+Composition is good!
 *
 */
-export class OrigamiParser extends StatementParserMixin(
-  ExpressionParserMixin(HelperParserMixin(ParserBase)),
-) {
-  public parse(): ParseResult {
-    this.current = 0;
+export class OrigamiParser {
+  constructor(private tokens: Token[]) {}
 
+  private errHandler: ErrorHandler = new ErrorHandler();
+  private stream: TokenStream = new TokenStream(this.tokens, this.errHandler);
+  private primaryParser: PrimaryParser = new PrimaryParser(
+    this.stream,
+    this.errHandler,
+  );
+  private expressionParser: ExpressionParser = new ExpressionParser(
+    this.stream,
+    this.errHandler,
+    this.primaryParser,
+  );
+  private statementParser: StatementParser = new StatementParser(
+    this.stream,
+    this.errHandler,
+    this.primaryParser,
+    this.expressionParser,
+  );
+
+  public parse(): ParseResult {
     try {
       const program = this.parseProgram();
 
+      const errs = this.errHandler.getErrors();
       return {
-        success: this.errors.length === 0,
-        errors: this.errors,
+        success: errs.length === 0,
+        errors: errs,
         ast: program,
       };
     } catch (error) {
       // Catch unexpected parsing errors
-      this.addError({
-        line: this.peek()?.line || 1,
-        column: this.peek()?.column || 1,
+      this.errHandler.addError({
+        line: this.stream.peek()?.line || 1,
+        column: this.stream.peek()?.column || 1,
         message: `Unexpected error during parsing: ${error}`,
         length: 1,
         severity: "error",
@@ -73,11 +69,11 @@ export class OrigamiParser extends StatementParserMixin(
 
   private parseProgram(): Program {
     const statements: Statement[] = [];
-    const startToken = this.peek();
+    const startToken = this.stream.peek();
 
-    while (!this.isAtEnd()) {
+    while (!this.stream.isAtEnd()) {
       try {
-        const stmt = this.parseStatement();
+        const stmt = this.statementParser.parseStatement();
         if (stmt) {
           statements.push(stmt);
         }
@@ -97,20 +93,24 @@ export class OrigamiParser extends StatementParserMixin(
 
   // Synchronizes the parser after an error
   private synchronize(): void {
-    this.advance();
+    this.stream.advance();
 
-    while (!this.isAtEnd()) {
+    while (!this.stream.isAtEnd()) {
       // Stop at the end of a statement
-      if (this.previous().type === TokenType.SEMICOLON) {
+      if (this.stream.previous().type === TokenType.SEMICOLON) {
         return;
       }
 
       // Stop at the likely beginning of a new statement
-      if (this.isType() || this.check(TokenType.IDENTIFIER)) {
+      if (this.stream.isType() || this.stream.check(TokenType.IDENTIFIER)) {
         return;
       }
 
-      this.advance();
+      this.stream.advance();
     }
+  }
+
+  protected reset() {
+    this.tokens = [];
   }
 }

@@ -12,6 +12,7 @@ import {
   InputMethodCall,
   ASTNodeType,
 } from "@/types";
+import { OrigamiParser } from "./extension";
 
 class Parser {
   private tokens: Token[];
@@ -490,6 +491,7 @@ class Parser {
 
 // Entry point for parsing a list of tokens
 export function parse(tokens: Token[]): ParseResult {
-  const parser = new Parser(tokens);
+  // const parser = new Parser(tokens);
+  const parser = new OrigamiParser(tokens);
   return parser.parse();
 }
