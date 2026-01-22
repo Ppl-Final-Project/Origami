@@ -59,9 +59,10 @@ export class OrigamiParser {
         severity: "error",
       });
 
+      const errs = this.errHandler.getErrors();
       return {
         success: false,
-        errors: this.errors,
+        errors: errs,
         ast: null,
       };
     }
