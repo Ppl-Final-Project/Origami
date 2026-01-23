@@ -85,7 +85,7 @@ export class ControlFlowParser {
 
     while (!this.stream.check(TokenType.UNFOLD) && !this.stream.isAtEnd()) {
       const stmt = this.statementParser.parseStatement();
-      if (stmt) statements.push(stmt);
+      statements.push(stmt);
     }
 
     this.stream.consume(TokenType.UNFOLD, "Expected 'unfold'.");

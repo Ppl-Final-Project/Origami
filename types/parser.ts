@@ -20,7 +20,14 @@ export enum ASTNodeType {
   IDENTIFIER = "Identifier",
   LITERAL = "Literal",
   INPUT_METHOD_CALL = "InputMethodCall",
+
   CONDITIONAL_STATEMENT = "ConditionalStatement",
+  WHILE_STATEMENT = "WhileStatement",
+  DO_WHILE_STATEMENT = "DoWhileStatement",
+  FOR_STATEMENT = "ForStatement",
+  FOREACH_STATEMENT = "ForEachStatement",
+
+  ERROR_STATEMENT = "ErrorStatement",
 }
 
 export interface ASTNode {
@@ -37,7 +44,16 @@ export interface Program extends ASTNode {
 export type Statement =
   | DeclarationStatement
   | InputStatement
-  | ConditionalStatement;
+  | ConditionalStatement
+  | WhileStatement
+  | DoWhileStatement
+  | ForStatement
+  | ForEachStatement
+  | ErrorStatement;
+
+export interface ErrorStatement extends ASTNode {
+  type: ASTNodeType.ERROR_STATEMENT;
+}
 
 export interface DeclarationStatement extends ASTNode {
   type: ASTNodeType.DECLARATION_STATEMENT;
@@ -51,6 +67,34 @@ export interface ConditionalStatement extends ASTNode {
     condition: Expression | null;
     body: Statement[];
   }[];
+}
+
+export interface WhileStatement extends ASTNode {
+  type: ASTNodeType.WHILE_STATEMENT;
+  condition: Expression;
+  body: Statement;
+}
+
+export interface DoWhileStatement extends ASTNode {
+  type: ASTNodeType.DO_WHILE_STATEMENT;
+  body: Statement;
+  condition: Expression;
+}
+
+export interface ForStatement extends ASTNode {
+  type: ASTNodeType.FOR_STATEMENT;
+  init: Statement | null;
+  condition: Expression | null;
+  update: Expression[];
+  body: Statement;
+}
+
+export interface ForEachStatement extends ASTNode {
+  type: ASTNodeType.FOREACH_STATEMENT;
+  varType: string;
+  identifier: string;
+  iterable: Expression;
+  body: Statement;
 }
 
 export interface InputStatement extends ASTNode {

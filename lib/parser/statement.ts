@@ -13,6 +13,7 @@ import { ErrorHandler } from "./error";
 import { ExpressionParser } from "./expression";
 import { PrimaryParser } from "./primaries";
 import { ControlFlowParser } from "./control";
+import { IteratorParser } from "./iterators";
 
 export class StatementParser {
   private controlParser: ControlFlowParser;
@@ -21,6 +22,7 @@ export class StatementParser {
     private errHandler: ErrorHandler,
     private primaryParser: PrimaryParser,
     private expressionParser: ExpressionParser,
+    private iteratorParser: IteratorParser,
   ) {
     this.controlParser = new ControlFlowParser(
       this.stream,
@@ -28,24 +30,23 @@ export class StatementParser {
       this,
     );
   }
-  parseStatement(): Statement | null {
+  parseStatement(): Statement {
     this.stream.checkProgress("parseStatement");
 
     if (this.stream.startsWithType()) {
       return this.parseDeclarationOrInputStatement();
     }
-
     if (this.isAssignmentForm()) {
-      // input statements without types
       return this.parseAssignmentForm();
     }
-
     if (this.controlParser.startsWithConditional()) {
       return this.controlParser.parseConditionals();
     }
+    if (this.iteratorParser.startsWithIterator()) {
+      return this.iteratorParser.parseIterator();
+    }
 
-    this.handleInvalidStatement();
-    return null;
+    return this.handleInvalidStatement();
   }
 
   private parseAssignmentForm(): InputStatement {
@@ -154,7 +155,7 @@ export class StatementParser {
     };
   }
 
-  private handleInvalidStatement() {
+  private handleInvalidStatement(): Statement {
     const token = this.stream.peek();
 
     this.errHandler.addError({
@@ -166,5 +167,11 @@ export class StatementParser {
     });
 
     this.stream.synchronize();
+
+    return {
+      type: ASTNodeType.ERROR_STATEMENT,
+      line: token.line,
+      column: token.column,
+    };
   }
 }
