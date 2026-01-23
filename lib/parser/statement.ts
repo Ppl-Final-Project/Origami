@@ -14,10 +14,12 @@ import { ExpressionParser } from "./expression";
 import { PrimaryParser } from "./primaries";
 import { ControlFlowParser } from "./control";
 import { IteratorParser } from "./iterators";
+import { ClassParser } from "./class";
 
 export class StatementParser {
   private controlParser: ControlFlowParser;
   private iteratorParser: IteratorParser;
+  private classParser: ClassParser;
   constructor(
     private stream: TokenStream,
     private errHandler: ErrorHandler,
@@ -34,10 +36,14 @@ export class StatementParser {
       this.expressionParser,
       this,
     );
+    this.classParser = new ClassParser(this.stream, this.errHandler, this);
   }
   parseStatement(): Statement {
     this.stream.checkProgress("parseStatement");
 
+    if (this.classParser.startsWithClass()) {
+      return this.classParser.parseClass();
+    }
     if (this.stream.startsWithType()) {
       return this.parseDeclarationOrInputStatement();
     }
