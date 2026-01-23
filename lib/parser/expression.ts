@@ -32,7 +32,7 @@ export class ExpressionParser {
     return left;
   }
 
-  private parseTerm(): Expression {
+  parseTerm(): Expression {
     let left = this.parseFactor();
 
     while (
@@ -57,7 +57,7 @@ export class ExpressionParser {
   }
 
   // Parses a factor (the highest-precedence expression)
-  private parseFactor(): Expression {
+  parseFactor(): Expression {
     // Parenthesized expression
     if (this.tokens.check(TokenType.LPAREN)) {
       this.tokens.advance(); // consume (
@@ -76,33 +76,7 @@ export class ExpressionParser {
 
     // Identifier or an input method call
     if (this.tokens.check(TokenType.IDENTIFIER)) {
-      const identifier = this.primaryParser.parseIdentifier();
-
-      // Check for an input method call
-      if (this.tokens.check(TokenType.DOT)) {
-        this.tokens.advance(); // consume .
-
-        const methodToken = this.tokens.consume(
-          TokenType.IDENTIFIER,
-          "Expected method name after '.'",
-        );
-        if (!methodToken) {
-          throw new Error("Missing method name");
-        }
-
-        this.tokens.consume(TokenType.LPAREN, "Expected '(' after method name");
-        this.tokens.consume(TokenType.RPAREN, "Expected ')' after '('");
-
-        return {
-          type: ASTNodeType.INPUT_METHOD_CALL,
-          object: identifier,
-          method: methodToken.value,
-          line: identifier.line,
-          column: identifier.column,
-        };
-      }
-
-      return identifier;
+      this.parseMethodCall();
     }
 
     // Handle unexpected tokens in an expression
@@ -123,6 +97,36 @@ export class ExpressionParser {
       line: token.line,
       column: token.column,
     };
+  }
+
+  parseMethodCall(): Expression {
+    const identifier = this.primaryParser.parseIdentifier();
+
+    // Check for an input method call
+    if (this.tokens.check(TokenType.DOT)) {
+      this.tokens.advance(); // consume .
+
+      const methodToken = this.tokens.consume(
+        TokenType.IDENTIFIER,
+        "Expected method name after '.'",
+      );
+      if (!methodToken) {
+        throw new Error("Missing method name");
+      }
+
+      this.tokens.consume(TokenType.LPAREN, "Expected '(' after method name");
+      this.tokens.consume(TokenType.RPAREN, "Expected ')' after '('");
+
+      return {
+        type: ASTNodeType.INPUT_METHOD_CALL,
+        object: identifier,
+        method: methodToken.value,
+        line: identifier.line,
+        column: identifier.column,
+      };
+    }
+
+    return identifier;
   }
 
   parseLiteral(): Expression {
