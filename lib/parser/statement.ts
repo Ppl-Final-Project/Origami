@@ -12,6 +12,7 @@ import { TokenStream } from "./helpers";
 import { ErrorHandler } from "./error";
 import { ExpressionParser } from "./expression";
 import { PrimaryParser } from "./primaries";
+import { ControlFlowParser } from "./control";
 
 export class StatementParser {
   constructor(
@@ -19,45 +20,23 @@ export class StatementParser {
     private errHandler: ErrorHandler,
     private primaryParser: PrimaryParser,
     private expressionParser: ExpressionParser,
+    private controlFlowParser: ControlFlowParser,
   ) {}
   parseStatement(): Statement | null {
-    // Handle statements starting with a type keyword
-    if (this.tokens.isType()) {
+    if (this.tokens.startsWithType()) {
       return this.parseDeclarationOrInputStatement();
     }
 
-    // Handle input statements in assignment form
-    if (this.isInputStatementWithoutType()) {
-      return this.parseInputStatementWithoutType();
+    if (this.isAssignmentForm()) {
+      // input statements without types
+      return this.parseAssignmentForm();
     }
 
-    // Handle unknown statement patterns
-    const token = this.tokens.peek();
-    this.errHandler.addError({
-      line: token.line,
-      column: token.column,
-      message: `Unexpected token '${token.value}' at start of statement`,
-      length: token.value.length,
-      severity: "error",
-    });
-    this.tokens.advance();
+    this.handleInvalidStatement();
     return null;
   }
 
-  private handleInvalidStatement(): null {
-    const token = this.tokens.peek();
-
-    this.errHandler.addError({
-      line: token.line,
-      column: token.column,
-      message: `Unexpected token '${token.value}' at start of statement`,
-      length: token.value.length,
-      severity: "error",
-    });
-
-    return null;
-  }
-  private parseInputStatementWithoutType(): InputStatement {
+  private parseAssignmentForm(): InputStatement {
     const startToken = this.tokens.peek();
 
     // Parse list of identifiers
@@ -87,7 +66,7 @@ export class StatementParser {
     };
   }
 
-  private isInputStatementWithoutType(): boolean {
+  private isAssignmentForm(): boolean {
     if (!this.tokens.check(TokenType.IDENTIFIER)) return false;
 
     const next = this.tokens.peekAhead(1);
@@ -163,13 +142,15 @@ export class StatementParser {
     };
   }
 
-  parseIfStatement() {
-    const token = this.tokens.consume(
-      TokenType.FRONT,
-      "Expected front keyword for the conditional statement.",
-    );
-  }
-  parseWhileStatement() {
-    throw new Error("todo");
+  private handleInvalidStatement() {
+    const token = this.tokens.peek();
+
+    this.errHandler.addError({
+      line: token.line,
+      column: token.column,
+      message: `Unexpected token '${token.value}' at start of statement`,
+      length: token.value.length,
+      severity: "error",
+    });
   }
 }
