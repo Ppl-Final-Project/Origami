@@ -15,15 +15,23 @@ import { PrimaryParser } from "./primaries";
 import { ControlFlowParser } from "./control";
 
 export class StatementParser {
+  private controlParser: ControlFlowParser;
   constructor(
-    private tokens: TokenStream,
+    private stream: TokenStream,
     private errHandler: ErrorHandler,
     private primaryParser: PrimaryParser,
     private expressionParser: ExpressionParser,
-    private controlParser: ControlFlowParser,
-  ) {}
+  ) {
+    this.controlParser = new ControlFlowParser(
+      this.stream,
+      this.errHandler,
+      this.primaryParser,
+      this.expressionParser,
+      this.parseStatement,
+    );
+  }
   parseStatement(): Statement | null {
-    if (this.tokens.startsWithType()) {
+    if (this.stream.startsWithType()) {
       return this.parseDeclarationOrInputStatement();
     }
 
@@ -41,22 +49,22 @@ export class StatementParser {
   }
 
   private parseAssignmentForm(): InputStatement {
-    const startToken = this.tokens.peek();
+    const startToken = this.stream.peek();
 
     // Parse list of identifiers
     const identifiers: Identifier[] = [];
     identifiers.push(this.primaryParser.parseIdentifier());
 
-    while (this.tokens.check(TokenType.COMMA)) {
-      this.tokens.advance(); // consume comma
+    while (this.stream.check(TokenType.COMMA)) {
+      this.stream.advance(); // consume comma
       identifiers.push(this.primaryParser.parseIdentifier());
     }
 
-    this.tokens.consume(TokenType.ASSIGN, "Expected '=' in input statement");
+    this.stream.consume(TokenType.ASSIGN, "Expected '=' in input statement");
 
     const inputMethodCall = this.primaryParser.parseInputMethodCall();
 
-    this.tokens.consume(
+    this.stream.consume(
       TokenType.SEMICOLON,
       "Expected ';' after input statement",
     );
@@ -71,14 +79,14 @@ export class StatementParser {
   }
 
   private isAssignmentForm(): boolean {
-    if (!this.tokens.check(TokenType.IDENTIFIER)) return false;
+    if (!this.stream.check(TokenType.IDENTIFIER)) return false;
 
-    const next = this.tokens.peekAhead(1);
+    const next = this.stream.peekAhead(1);
     return next?.type === TokenType.COMMA || next?.type === TokenType.ASSIGN;
   }
 
   private parseDeclarationOrInputStatement(): Statement {
-    const typeToken = this.tokens.advance();
+    const typeToken = this.stream.advance();
     const dataType = typeToken.value;
     const startLine = typeToken.line;
     const startColumn = typeToken.column;
@@ -87,15 +95,15 @@ export class StatementParser {
 
     // Parse declarators separated by commas
     do {
-      if (this.tokens.check(TokenType.COMMA)) {
-        this.tokens.advance(); // consume comma
+      if (this.stream.check(TokenType.COMMA)) {
+        this.stream.advance(); // consume comma
       }
 
       const identifier = this.primaryParser.parseIdentifier();
       let initializer: Expression | undefined = undefined;
 
-      if (this.tokens.check(TokenType.ASSIGN)) {
-        this.tokens.advance(); // consume =
+      if (this.stream.check(TokenType.ASSIGN)) {
+        this.stream.advance(); // consume =
         initializer = this.expressionParser.parseExpression();
       }
 
@@ -106,7 +114,7 @@ export class StatementParser {
         line: identifier.line,
         column: identifier.column,
       });
-    } while (this.tokens.check(TokenType.COMMA));
+    } while (this.stream.check(TokenType.COMMA));
 
     // Special case: check if this is an input statement
     // This is true if there is only one initializer and it's an input call
@@ -118,7 +126,7 @@ export class StatementParser {
       )
     ) {
       const identifiers = declarators.map((d) => d.identifier);
-      this.tokens.consume(
+      this.stream.consume(
         TokenType.SEMICOLON,
         "Expected ';' after input statement",
       );
@@ -132,7 +140,7 @@ export class StatementParser {
       };
     }
 
-    this.tokens.consume(
+    this.stream.consume(
       TokenType.SEMICOLON,
       "Expected ';' after declaration statement",
     );
@@ -147,7 +155,7 @@ export class StatementParser {
   }
 
   private handleInvalidStatement() {
-    const token = this.tokens.peek();
+    const token = this.stream.peek();
 
     this.errHandler.addError({
       line: token.line,

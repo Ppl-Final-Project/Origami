@@ -33,18 +33,11 @@ export class OrigamiParser {
     this.errHandler,
     this.primaryParser,
   );
-  private controlFlowParser: ControlFlowParser = new ControlFlowParser(
-    this.stream,
-    this.errHandler,
-    this.primaryParser,
-    this.expressionParser,
-  );
   private statementParser: StatementParser = new StatementParser(
     this.stream,
     this.errHandler,
     this.primaryParser,
     this.expressionParser,
-    this.controlFlowParser,
   );
 
   public parse(): ParseResult {

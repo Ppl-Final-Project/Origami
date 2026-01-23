@@ -70,14 +70,14 @@ export class TokenStream {
       }
 
       // Stop at the likely beginning of a new statement
-      if (this.isType() || this.check(TokenType.IDENTIFIER)) {
+      if (this.startsWithType() || this.check(TokenType.IDENTIFIER)) {
         return;
       }
 
       this.advance();
     }
   }
-  public isType(): boolean {
+  public startsWithType(): boolean {
     const typeTokens = [
       TokenType.EDGE,
       TokenType.MARK,
