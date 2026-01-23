@@ -21,6 +21,7 @@ export enum ASTNodeType {
   LITERAL = "Literal",
   INPUT_METHOD_CALL = "InputMethodCall",
   CONDITIONAL_STATEMENT = "ConditionalStatement",
+  ASSIGNMENT_STATEMENT = "AssignmentStatement",
 }
 
 export interface ASTNode {
@@ -37,12 +38,19 @@ export interface Program extends ASTNode {
 export type Statement =
   | DeclarationStatement
   | InputStatement
-  | ConditionalStatement;
+  | ConditionalStatement
+  | AssignmentStatement;
 
 export interface DeclarationStatement extends ASTNode {
   type: ASTNodeType.DECLARATION_STATEMENT;
   dataType: string;
   declarators: Declarator[];
+}
+
+export interface AssignmentStatement extends ASTNode {
+  type: ASTNodeType.ASSIGNMENT_STATEMENT;
+  identifier: Identifier;
+  value: Expression;
 }
 
 export interface ConditionalStatement extends ASTNode {

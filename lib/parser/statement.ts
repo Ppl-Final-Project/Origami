@@ -37,7 +37,7 @@ export class StatementParser {
 
     if (this.isAssignmentForm()) {
       // input statements without types
-      return this.parseAssignmentForm();
+      return this.parseAssignmentOrInputStatement();
     }
 
     if (this.controlParser.startsWithConditional()) {
@@ -48,7 +48,7 @@ export class StatementParser {
     return null;
   }
 
-  private parseAssignmentForm(): InputStatement {
+  private parseAssignmentOrInputStatement(): Statement {
     const startToken = this.stream.peek();
 
     // Parse list of identifiers
@@ -60,19 +60,38 @@ export class StatementParser {
       identifiers.push(this.primaryParser.parseIdentifier());
     }
 
-    this.stream.consume(TokenType.ASSIGN, "Expected '=' in input statement");
+    this.stream.consume(TokenType.ASSIGN, "Expected '=' in assignment");
 
-    const inputMethodCall = this.primaryParser.parseInputMethodCall();
+    const expression = this.expressionParser.parseExpression();
 
-    this.stream.consume(
-      TokenType.SEMICOLON,
-      "Expected ';' after input statement",
-    );
+    this.stream.consume(TokenType.SEMICOLON, "Expected ';' after statement");
+
+    // Check if it's an input statement
+    if (expression.type === ASTNodeType.INPUT_METHOD_CALL) {
+      return {
+        type: ASTNodeType.INPUT_STATEMENT,
+        identifiers,
+        inputMethodCall: expression as InputMethodCall,
+        line: startToken.line,
+        column: startToken.column,
+      };
+    }
+
+    // Otherwise, it's a variable reassignment
+    if (identifiers.length > 1) {
+      this.errHandler.addError({
+        line: startToken.line,
+        column: startToken.column,
+        message: "Multiple identifiers are only allowed in input statements",
+        length: 1,
+        severity: "error",
+      });
+    }
 
     return {
-      type: ASTNodeType.INPUT_STATEMENT,
-      identifiers,
-      inputMethodCall,
+      type: ASTNodeType.ASSIGNMENT_STATEMENT,
+      identifier: identifiers[0],
+      value: expression,
       line: startToken.line,
       column: startToken.column,
     };
