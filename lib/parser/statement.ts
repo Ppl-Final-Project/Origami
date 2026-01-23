@@ -20,7 +20,7 @@ export class StatementParser {
     private errHandler: ErrorHandler,
     private primaryParser: PrimaryParser,
     private expressionParser: ExpressionParser,
-    private controlFlowParser: ControlFlowParser,
+    private controlParser: ControlFlowParser,
   ) {}
   parseStatement(): Statement | null {
     if (this.tokens.startsWithType()) {
@@ -30,6 +30,10 @@ export class StatementParser {
     if (this.isAssignmentForm()) {
       // input statements without types
       return this.parseAssignmentForm();
+    }
+
+    if (this.controlParser.startsWithConditional()) {
+      this.controlParser.parseConditionals();
     }
 
     this.handleInvalidStatement();
