@@ -80,7 +80,7 @@ export class OrigamiParser {
         }
       } catch (error) {
         // On error, synchronize to the next statement
-        this.synchronize();
+        this.stream.synchronize();
       }
     }
 
@@ -90,25 +90,6 @@ export class OrigamiParser {
       line: startToken.line,
       column: startToken.column,
     };
-  }
-
-  // Synchronizes the parser after an error
-  private synchronize(): void {
-    this.stream.advance();
-
-    while (!this.stream.isAtEnd()) {
-      // Stop at the end of a statement
-      if (this.stream.previous().type === TokenType.SEMICOLON) {
-        return;
-      }
-
-      // Stop at the likely beginning of a new statement
-      if (this.stream.isType() || this.stream.check(TokenType.IDENTIFIER)) {
-        return;
-      }
-
-      this.stream.advance();
-    }
   }
 
   protected reset() {

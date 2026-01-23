@@ -60,6 +60,23 @@ export class TokenStream {
 
     return null;
   }
+  public synchronize(): void {
+    this.advance();
+
+    while (!this.isAtEnd()) {
+      // Stop at the end of a statement
+      if (this.previous().type === TokenType.SEMICOLON) {
+        return;
+      }
+
+      // Stop at the likely beginning of a new statement
+      if (this.isType() || this.check(TokenType.IDENTIFIER)) {
+        return;
+      }
+
+      this.advance();
+    }
+  }
   public isType(): boolean {
     const typeTokens = [
       TokenType.EDGE,

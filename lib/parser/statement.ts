@@ -27,16 +27,8 @@ export class StatementParser {
     }
 
     // Handle input statements in assignment form
-    if (this.tokens.check(TokenType.IDENTIFIER)) {
-      // Peek ahead to confirm it's an input statement
-      const nextToken = this.tokens.peekAhead(1);
-      if (
-        nextToken &&
-        (nextToken.type === TokenType.COMMA ||
-          nextToken.type === TokenType.ASSIGN)
-      ) {
-        return this.parseInputStatementWithoutType();
-      }
+    if (this.isInputStatementWithoutType()) {
+      return this.parseInputStatementWithoutType();
     }
 
     // Handle unknown statement patterns
@@ -49,6 +41,20 @@ export class StatementParser {
       severity: "error",
     });
     this.tokens.advance();
+    return null;
+  }
+
+  private handleInvalidStatement(): null {
+    const token = this.tokens.peek();
+
+    this.errHandler.addError({
+      line: token.line,
+      column: token.column,
+      message: `Unexpected token '${token.value}' at start of statement`,
+      length: token.value.length,
+      severity: "error",
+    });
+
     return null;
   }
   private parseInputStatementWithoutType(): InputStatement {
@@ -79,6 +85,13 @@ export class StatementParser {
       line: startToken.line,
       column: startToken.column,
     };
+  }
+
+  private isInputStatementWithoutType(): boolean {
+    if (!this.tokens.check(TokenType.IDENTIFIER)) return false;
+
+    const next = this.tokens.peekAhead(1);
+    return next?.type === TokenType.COMMA || next?.type === TokenType.ASSIGN;
   }
 
   private parseDeclarationOrInputStatement(): Statement {
@@ -149,8 +162,12 @@ export class StatementParser {
       column: startColumn,
     };
   }
+
   parseIfStatement() {
-    throw new Error("todo");
+    const token = this.tokens.consume(
+      TokenType.FRONT,
+      "Expected front keyword for the conditional statement.",
+    );
   }
   parseWhileStatement() {
     throw new Error("todo");
