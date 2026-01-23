@@ -1,10 +1,4 @@
-import {
-  Statement,
-  StatementParserFn,
-  TokenType,
-  Expression,
-  ASTNodeType,
-} from "@/types";
+import { Statement, TokenType, Expression, ASTNodeType } from "@/types";
 import { ExpressionParser } from "./expression";
 import { TokenStream } from "./helpers";
 import { StatementParser } from "./statement";
@@ -24,6 +18,8 @@ export class ControlFlowParser {
   startsWithConditional() {
     return this.stream.match(TokenType.FRONT);
   }
+
+  // front (cond) fold...unfold [back front (cond) fold...unfold]* [back fold...unfold]
   parseConditionals(): Statement {
     const branches: Branches[] = [];
 

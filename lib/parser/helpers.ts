@@ -27,6 +27,7 @@ export class TokenStream {
     }
   }
 
+  // Detects infinite loops during parsing (debug mode)
   public checkProgress(context: string) {
     if (!this.debugConfig.enabled) return;
 
@@ -87,6 +88,7 @@ export class TokenStream {
     return this.tokens[index];
   }
 
+  // Expects and advances a specific token type, or logs error and synchronizes
   public consume(type: TokenType, message: string): Token | null {
     if (this.check(type)) {
       return this.advance();
@@ -106,25 +108,20 @@ export class TokenStream {
     this.synchronize();
     return null;
   }
+
+  // Recovers from parse errors by skipping to next statement boundary
   public synchronize(): void {
     if (this.isAtEnd()) return;
-
     this.advance();
 
     while (!this.isAtEnd()) {
-      // Stop at the end of a statement
-      if (this.previous().type === TokenType.SEMICOLON) {
-        return;
-      }
-
-      // Stop at the likely beginning of a new statement
-      if (this.startsWithType() || this.check(TokenType.IDENTIFIER)) {
-        return;
-      }
-
+      if (this.previous().type === TokenType.SEMICOLON) return;
+      if (this.startsWithType() || this.check(TokenType.IDENTIFIER)) return;
       this.advance();
     }
   }
+
+  // Checks if current token starts a type declaration (built-in or class type)
   public startsWithType(): boolean {
     const typeTokens = [
       TokenType.EDGE,
@@ -135,6 +132,21 @@ export class TokenStream {
       TokenType.FLAT,
       TokenType.STRIP,
     ];
-    return typeTokens.some((type) => this.check(type));
+
+    if (typeTokens.some((type) => this.check(type))) return true;
+
+    // Class type: IDENTIFIER followed by IDENTIFIER, '?', or '['
+    if (this.check(TokenType.IDENTIFIER)) {
+      const next = this.peekAhead(1);
+      if (
+        next?.type === TokenType.IDENTIFIER ||
+        next?.type === TokenType.QUESTION ||
+        next?.type === TokenType.LBRACKET
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

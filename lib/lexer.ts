@@ -191,9 +191,12 @@ class LexicalAnalyzer {
   private handleString(quote: string): void {
     const start = this.i;
     const startCol = this.column;
-    const isTemplateLiteral = quote === "`";
+    const isBacktick = quote === "`";
     this.i++;
     this.column++;
+
+    // Track whether this string contains interpolations (making it a template literal)
+    let hasInterpolation = isBacktick;
 
     // Continue until we find the closing quote
     while (!this.isAtEnd() && this.input[this.i] !== quote) {
@@ -209,11 +212,9 @@ class LexicalAnalyzer {
       }
 
       // Handle template literal interpolations ${...}
-      if (
-        isTemplateLiteral &&
-        this.input[this.i] === "$" &&
-        this.peek(1) === "{"
-      ) {
+      // In Origami, double-quoted strings with ${} are also template literals
+      if (this.input[this.i] === "$" && this.peek(1) === "{") {
+        hasInterpolation = true;
         this.i += 2;
         this.column += 2;
 
@@ -241,7 +242,7 @@ class LexicalAnalyzer {
     }
 
     this.tokens.push({
-      type: isTemplateLiteral ? TokenType.TEMPLATE_LITERAL : TokenType.STRING,
+      type: hasInterpolation ? TokenType.TEMPLATE_LITERAL : TokenType.STRING,
       value: this.input.substring(start, this.i),
       line: this.line,
       column: startCol,

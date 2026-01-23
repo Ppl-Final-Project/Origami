@@ -30,6 +30,7 @@ export enum ASTNodeType {
   DO_WHILE_STATEMENT = "DoWhileStatement",
   FOR_STATEMENT = "ForStatement",
   FOREACH_STATEMENT = "ForEachStatement",
+  BOUNDED_ITERATION = "BoundedIteration",
 
   ERROR_STATEMENT = "ErrorStatement",
   ASSIGNMENT_STATEMENT = "AssignmentStatement",
@@ -37,6 +38,35 @@ export enum ASTNodeType {
   CLASS_DECLARATION = "ClassDeclaration",
   METHOD_DECLARATION = "MethodDeclaration",
   PARAMETER = "Parameter",
+
+  FUNCTION_DECLARATION = "FunctionDeclaration",
+  FUNCTION_ATTACHMENT = "FunctionAttachment",
+  TEMPLATE_LITERAL = "TemplateLiteral",
+  TEMPLATE_ELEMENT = "TemplateElement",
+  ARROW_EXPRESSION = "ArrowExpression",
+  RETURN_STATEMENT = "ReturnStatement",
+
+  // Try-catch (draft/smooth)
+  TRY_STATEMENT = "TryStatement",
+  CATCH_CLAUSE = "CatchClause",
+
+  // Throw (crumple)
+  THROW_STATEMENT = "ThrowStatement",
+
+  // Object instantiation (craft)
+  NEW_EXPRESSION = "NewExpression",
+
+  // Member access (obj.field)
+  MEMBER_EXPRESSION = "MemberExpression",
+
+  // Method/function call
+  CALL_EXPRESSION = "CallExpression",
+
+  // Expression as statement
+  EXPRESSION_STATEMENT = "ExpressionStatement",
+
+  // Member assignment (e.g., sheet.balance = value)
+  MEMBER_ASSIGNMENT = "MemberAssignment",
 }
 
 export interface ASTNode {
@@ -58,9 +88,16 @@ export type Statement =
   | DoWhileStatement
   | ForStatement
   | ForEachStatement
+  | BoundedIteration
   | ErrorStatement
   | AssignmentStatement
-  | ClassDeclaration;
+  | MemberAssignment
+  | ClassDeclaration
+  | FunctionDeclaration
+  | ReturnStatement
+  | TryStatement
+  | ThrowStatement
+  | ExpressionStatement;
 
 export interface ErrorStatement extends ASTNode {
   type: ASTNodeType.ERROR_STATEMENT;
@@ -69,12 +106,21 @@ export interface ErrorStatement extends ASTNode {
 export interface DeclarationStatement extends ASTNode {
   type: ASTNodeType.DECLARATION_STATEMENT;
   dataType: string;
+  isNullable?: boolean;
+  modifiers?: string[];
   declarators: Declarator[];
 }
 
 export interface AssignmentStatement extends ASTNode {
   type: ASTNodeType.ASSIGNMENT_STATEMENT;
   identifier: Identifier;
+  value: Expression;
+}
+
+// Member assignment: sheet.balance = value or obj.field = value
+export interface MemberAssignment extends ASTNode {
+  type: ASTNodeType.MEMBER_ASSIGNMENT;
+  target: Expression; // MemberExpression or Identifier
   value: Expression;
 }
 
@@ -114,6 +160,14 @@ export interface ForEachStatement extends ASTNode {
   body: Statement[];
 }
 
+// Bounded iteration: layer (5) as i fold ... unfold
+export interface BoundedIteration extends ASTNode {
+  type: ASTNodeType.BOUNDED_ITERATION;
+  count: Expression;
+  iterator: string;
+  body: Statement[];
+}
+
 export interface InputStatement extends ASTNode {
   type: ASTNodeType.INPUT_STATEMENT;
   dataType?: string; // Optional for variable declaration
@@ -128,7 +182,12 @@ export type Expression =
   | InputMethodCall
   | UnaryExpression
   | PostfixExpression
-  | PrefixExpression;
+  | PrefixExpression
+  | TemplateLiteralExpr
+  | ArrowExpression
+  | NewExpression
+  | MemberExpression
+  | CallExpression;
 
 export interface Declarator extends ASTNode {
   type: ASTNodeType.DECLARATOR;
@@ -143,7 +202,7 @@ export interface Identifier extends ASTNode {
 
 export interface Literal extends ASTNode {
   type: ASTNodeType.LITERAL;
-  value: string | number;
+  value: string | number | null;
   raw: string;
 }
 
@@ -190,6 +249,8 @@ export interface Parameter extends ASTNode {
   dataType: string;
   name: string;
   isArray: boolean;
+  isNullable?: boolean;
+  defaultValue?: Expression;
 }
 
 export interface MethodDeclaration extends ASTNode {
@@ -208,4 +269,93 @@ export interface ClassDeclaration extends ASTNode {
   superClass?: string;
   methods: MethodDeclaration[];
   fields: DeclarationStatement[];
+}
+
+// Function declaration: crease funcName(params) fold ... unfold
+export interface FunctionDeclaration extends ASTNode {
+  type: ASTNodeType.FUNCTION_DECLARATION;
+  returnType: string;
+  isNullable?: boolean;
+  name: string;
+  parameters: Parameter[];
+  body: Statement[];
+  attachment?: FunctionAttachment;
+}
+
+// Function attachment: crease addFive attach double()
+export interface FunctionAttachment extends ASTNode {
+  type: ASTNodeType.FUNCTION_ATTACHMENT;
+  functionName: string;
+  arguments: Expression[];
+}
+
+// Template literal: "Hello ${name}"
+export interface TemplateLiteralExpr extends ASTNode {
+  type: ASTNodeType.TEMPLATE_LITERAL;
+  parts: (TemplateElement | Expression)[];
+}
+
+export interface TemplateElement extends ASTNode {
+  type: ASTNodeType.TEMPLATE_ELEMENT;
+  value: string;
+  raw: string;
+}
+
+// Arrow expression for function attachment output: double -> out
+export interface ArrowExpression extends ASTNode {
+  type: ASTNodeType.ARROW_EXPRESSION;
+  left: Identifier;
+  right: Identifier;
+}
+
+// Return statement: reveal x * 2
+export interface ReturnStatement extends ASTNode {
+  type: ASTNodeType.RETURN_STATEMENT;
+  argument: Expression | null;
+}
+
+// Try-catch: draft fold ... unfold smooth (Type param) fold ... unfold
+export interface TryStatement extends ASTNode {
+  type: ASTNodeType.TRY_STATEMENT;
+  body: Statement[];
+  handler: CatchClause | null;
+}
+
+export interface CatchClause extends ASTNode {
+  type: ASTNodeType.CATCH_CLAUSE;
+  param: Parameter | null;
+  body: Statement[];
+}
+
+// Throw statement: crumple "error message"
+export interface ThrowStatement extends ASTNode {
+  type: ASTNodeType.THROW_STATEMENT;
+  argument: Expression;
+}
+
+// Object instantiation: craft ClassName(args)
+export interface NewExpression extends ASTNode {
+  type: ASTNodeType.NEW_EXPRESSION;
+  callee: Identifier;
+  arguments: Expression[];
+}
+
+// Member access: obj.field or sheet.balance
+export interface MemberExpression extends ASTNode {
+  type: ASTNodeType.MEMBER_EXPRESSION;
+  object: Expression;
+  property: Identifier;
+}
+
+// Method/function call: func(args)
+export interface CallExpression extends ASTNode {
+  type: ASTNodeType.CALL_EXPRESSION;
+  callee: Expression;
+  arguments: Expression[];
+}
+
+// Expression as statement (e.g., method call)
+export interface ExpressionStatement extends ASTNode {
+  type: ASTNodeType.EXPRESSION_STATEMENT;
+  expression: Expression;
 }

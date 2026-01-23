@@ -5,58 +5,43 @@ import {
   Parameter,
   ASTNodeType,
   DeclarationStatement,
+  Expression,
+  Statement,
 } from "@/types";
 import { TokenStream } from "./helpers";
 import { ErrorHandler } from "./error";
-import { StatementParser } from "./statement";
+import { ExpressionParser } from "./expression";
 
 export class ClassParser {
   constructor(
     private stream: TokenStream,
     private errHandler: ErrorHandler,
-    private statementParser: StatementParser,
+    private expressionParser: ExpressionParser,
+    private parseBlock: () => Statement[],
   ) {}
 
-  /** Checks if the current token sequence starts a class declaration. */
+  // [modifiers] blueprint ClassName [inherit Super] fold...unfold
   startsWithClass(): boolean {
-    if (this.stream.check(TokenType.BLUEPRINT)) {
-      return true;
-    }
+    if (this.stream.check(TokenType.BLUEPRINT)) return true;
 
     let offset = 0;
     while (offset < 5) {
       const token = this.stream.peekAhead(offset);
       if (!token || token.type === TokenType.EOF) return false;
+      if (token.type === TokenType.BLUEPRINT) return true;
 
-      if (token.type === TokenType.BLUEPRINT) {
-        return true;
-      }
-
-      if (
-        token.type === TokenType.OPEN ||
-        token.type === TokenType.SEALED ||
-        token.type === TokenType.GUIDE
-      ) {
+      if (this.isModifier(token.type)) {
         offset++;
         continue;
       }
-
       return false;
     }
-
     return false;
   }
 
-  /** Parses a class declaration. */
   parseClass(): ClassDeclaration {
     const startToken = this.stream.peek();
-    const modifiers: string[] = [];
-
-    while (
-      this.stream.match(TokenType.OPEN, TokenType.SEALED, TokenType.GUIDE)
-    ) {
-      modifiers.push(this.stream.advance().value);
-    }
+    const modifiers = this.parseModifiers();
 
     this.stream.consume(TokenType.BLUEPRINT, "Expected 'blueprint' keyword");
 
@@ -82,21 +67,12 @@ export class ClassParser {
     const fields: DeclarationStatement[] = [];
 
     while (!this.stream.check(TokenType.UNFOLD) && !this.stream.isAtEnd()) {
-      if (this.startsWithMethod()) {
+      const memberType = this.detectMemberType(className);
+
+      if (memberType === "method" || memberType === "constructor") {
         methods.push(this.parseMethod());
-      } else if (this.stream.startsWithType()) {
-        const fieldStmt = this.statementParser.parseStatement();
-        if (fieldStmt.type === ASTNodeType.DECLARATION_STATEMENT) {
-          fields.push(fieldStmt as DeclarationStatement);
-        } else {
-          this.errHandler.addError({
-            line: this.stream.peek().line,
-            column: this.stream.peek().column,
-            message: "Expected field declaration or method in class body",
-            length: 1,
-            severity: "error",
-          });
-        }
+      } else if (memberType === "field") {
+        fields.push(this.parseField());
       } else {
         this.errHandler.addError({
           line: this.stream.peek().line,
@@ -123,61 +99,68 @@ export class ClassParser {
     };
   }
 
-  /** Checks if the current token sequence starts a method declaration. */
-  private startsWithMethod(): boolean {
+  // Distinguishes method, constructor, or field at current position
+  private detectMemberType(
+    className: string,
+  ): "method" | "constructor" | "field" | "unknown" {
     let offset = 0;
 
     while (offset < 5) {
       const token = this.stream.peekAhead(offset);
-      if (!token) return false;
-
-      if (
-        token.type === TokenType.OPEN ||
-        token.type === TokenType.GUIDE ||
-        token.type === TokenType.SEALED
-      ) {
+      if (!token) return "unknown";
+      if (this.isModifier(token.type)) {
         offset++;
         continue;
       }
       break;
     }
 
-    const typeToken = this.stream.peekAhead(offset);
-    if (!typeToken) return false;
+    const firstToken = this.stream.peekAhead(offset);
+    if (!firstToken) return "unknown";
 
-    const isTypeKeyword =
-      typeToken.type === TokenType.FLAT ||
-      typeToken.type === TokenType.CREASE ||
-      typeToken.type === TokenType.STRIP ||
-      typeToken.type === TokenType.EDGE ||
-      typeToken.type === TokenType.MARK ||
-      typeToken.type === TokenType.THIN ||
-      typeToken.type === TokenType.THICK;
-
-    if (!isTypeKeyword) return false;
-
-    const nameToken = this.stream.peekAhead(offset + 1);
-    if (!nameToken || nameToken.type !== TokenType.IDENTIFIER) return false;
-
-    const parenToken = this.stream.peekAhead(offset + 2);
-    if (!parenToken || parenToken.type !== TokenType.LPAREN) return false;
-
-    return true;
-  }
-
-  /** Parses a method declaration. */
-  private parseMethod(): MethodDeclaration {
-    const startToken = this.stream.peek();
-    const modifiers: string[] = [];
-
-    while (
-      this.stream.match(TokenType.OPEN, TokenType.GUIDE, TokenType.SEALED)
-    ) {
-      modifiers.push(this.stream.advance().value);
+    if (firstToken.type === TokenType.IDENTIFIER) {
+      const nextToken = this.stream.peekAhead(offset + 1);
+      if (
+        firstToken.value === className &&
+        nextToken?.type === TokenType.LPAREN
+      ) {
+        return "constructor";
+      }
     }
 
-    const returnTypeToken = this.stream.advance();
-    const returnType = returnTypeToken.value;
+    if (!this.isTypeKeyword(firstToken.type)) return "unknown";
+
+    const secondToken = this.stream.peekAhead(offset + 1);
+    if (!secondToken) return "unknown";
+
+    if (secondToken.type === TokenType.IDENTIFIER) {
+      const thirdToken = this.stream.peekAhead(offset + 2);
+      if (thirdToken?.type === TokenType.LPAREN) return "method";
+    }
+
+    if (
+      secondToken.type === TokenType.IDENTIFIER ||
+      secondToken.type === TokenType.QUESTION
+    ) {
+      return "field";
+    }
+
+    return "unknown";
+  }
+
+  private parseMethod(): MethodDeclaration {
+    const startToken = this.stream.peek();
+    const modifiers = this.parseModifiers();
+    let returnType = "void";
+
+    if (
+      this.stream.check(TokenType.IDENTIFIER) &&
+      this.stream.peekAhead(1)?.type === TokenType.LPAREN
+    ) {
+      returnType = "constructor";
+    } else {
+      returnType = this.stream.advance().value;
+    }
 
     const methodNameToken = this.stream.consume(
       TokenType.IDENTIFIER,
@@ -189,7 +172,7 @@ export class ClassParser {
     const parameters = this.parseParameters();
     this.stream.consume(TokenType.RPAREN, "Expected ')' after parameters");
 
-    const body = this.statementParser.parseBlock();
+    const body = this.parseBlock();
 
     return {
       type: ASTNodeType.METHOD_DECLARATION,
@@ -203,21 +186,67 @@ export class ClassParser {
     };
   }
 
-  /** Parses method parameters. */
-  private parseParameters(): Parameter[] {
-    const parameters: Parameter[] = [];
+  private parseField(): DeclarationStatement {
+    const startToken = this.stream.peek();
+    const modifiers = this.parseModifiers();
 
-    if (this.stream.check(TokenType.RPAREN)) {
-      return parameters;
+    const typeToken = this.stream.advance();
+    const dataType = typeToken.value;
+
+    let isNullable = false;
+    if (this.stream.check(TokenType.QUESTION)) {
+      this.stream.advance();
+      isNullable = true;
     }
 
-    do {
-      const paramStartToken = this.stream.peek();
+    const nameToken = this.stream.consume(
+      TokenType.IDENTIFIER,
+      "Expected field name",
+    );
 
-      if (!this.stream.startsWithType()) {
+    let initializer: Expression | undefined;
+    if (this.stream.check(TokenType.ASSIGN)) {
+      this.stream.advance();
+      initializer = this.expressionParser.parseExpression();
+    }
+
+    this.stream.consume(TokenType.SEMICOLON, "Expected ';' after field");
+
+    return {
+      type: ASTNodeType.DECLARATION_STATEMENT,
+      dataType,
+      isNullable,
+      modifiers,
+      declarators: [
+        {
+          type: ASTNodeType.DECLARATOR,
+          identifier: {
+            type: ASTNodeType.IDENTIFIER,
+            name: nameToken?.value || "unknownField",
+            line: nameToken?.line || startToken.line,
+            column: nameToken?.column || startToken.column,
+          },
+          initializer,
+          line: nameToken?.line || startToken.line,
+          column: nameToken?.column || startToken.column,
+        },
+      ],
+      line: startToken.line,
+      column: startToken.column,
+    };
+  }
+
+  private parseParameters(): Parameter[] {
+    const parameters: Parameter[] = [];
+    if (this.stream.check(TokenType.RPAREN)) return parameters;
+
+    do {
+      const paramStart = this.stream.peek();
+
+      if (!this.isTypeKeyword(this.stream.peek().type)) {
         this.errHandler.addError({
-          line: this.stream.peek().line,
-          column: this.stream.peek().column,
+          line: paramStart.line,
+          column: paramStart.column,
           message: "Expected parameter type",
           length: 1,
           severity: "error",
@@ -225,37 +254,75 @@ export class ClassParser {
         break;
       }
 
-      const paramTypeToken = this.stream.advance();
-      const paramType = paramTypeToken.value;
+      const typeToken = this.stream.advance();
+
+      let isNullable = false;
+      if (this.stream.check(TokenType.QUESTION)) {
+        this.stream.advance();
+        isNullable = true;
+      }
 
       let isArray = false;
       if (this.stream.check(TokenType.LBRACKET)) {
         this.stream.advance();
-        this.stream.consume(TokenType.RBRACKET, "Expected ']' after '['");
+        this.stream.consume(TokenType.RBRACKET, "Expected ']'");
         isArray = true;
       }
 
-      const paramNameToken = this.stream.consume(
+      const nameToken = this.stream.consume(
         TokenType.IDENTIFIER,
         "Expected parameter name",
       );
-      const paramName = paramNameToken?.value || "unknownParam";
+
+      let defaultValue: Expression | undefined;
+      if (this.stream.check(TokenType.ASSIGN)) {
+        this.stream.advance();
+        defaultValue = this.expressionParser.parseExpression();
+      }
 
       parameters.push({
         type: ASTNodeType.PARAMETER,
-        dataType: paramType,
-        name: paramName,
+        dataType: typeToken.value,
+        name: nameToken?.value || "unknownParam",
         isArray,
-        line: paramStartToken.line,
-        column: paramStartToken.column,
+        isNullable,
+        defaultValue,
+        line: paramStart.line,
+        column: paramStart.column,
       });
 
-      if (!this.stream.check(TokenType.COMMA)) {
-        break;
-      }
+      if (!this.stream.check(TokenType.COMMA)) break;
       this.stream.advance();
     } while (!this.stream.check(TokenType.RPAREN) && !this.stream.isAtEnd());
 
     return parameters;
+  }
+
+  private parseModifiers(): string[] {
+    const modifiers: string[] = [];
+    while (this.isModifier(this.stream.peek().type)) {
+      modifiers.push(this.stream.advance().value);
+    }
+    return modifiers;
+  }
+
+  private isModifier(type: TokenType): boolean {
+    return (
+      type === TokenType.OPEN ||
+      type === TokenType.SEALED ||
+      type === TokenType.GUIDE
+    );
+  }
+
+  private isTypeKeyword(type: TokenType): boolean {
+    return (
+      type === TokenType.FLAT ||
+      type === TokenType.CREASE ||
+      type === TokenType.STRIP ||
+      type === TokenType.EDGE ||
+      type === TokenType.MARK ||
+      type === TokenType.THIN ||
+      type === TokenType.THICK
+    );
   }
 }

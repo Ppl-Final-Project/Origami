@@ -26,6 +26,7 @@ export class IteratorParser {
     throw new Error("Expected iterator statement");
   }
 
+  // work fold...unfold spiral (cond);
   private parseDoWhile(): Statement {
     const start = this.stream.advance(); // work
 
@@ -48,7 +49,7 @@ export class IteratorParser {
     };
   }
 
-  // spiral (v > 0) fold unfold
+  // spiral (cond) fold...unfold
   private parseWhile(): Statement {
     const start = this.stream.advance(); // spiral
 
@@ -80,10 +81,63 @@ export class IteratorParser {
       return this.parseForEach(start);
     }
 
+    // Check for bounded iteration: layer (5) as i or layer (expr) as i
+    // This is when the content after ( is NOT a type followed by identifier =
+    // but is an expression followed by ) as identifier
+    if (this.isBoundedIteration()) {
+      return this.parseBoundedIteration(start);
+    }
+
     return this.parseFor(start);
   }
 
-  // layer (crease i = 0; i < 2; i) fold unfold
+  // Distinguishes bounded iteration (layer (n) as i) from for loop
+  private isBoundedIteration(): boolean {
+    let depth = 1;
+    let offset = 0;
+
+    while (depth > 0) {
+      const token = this.stream.peekAhead(offset);
+      if (!token || token.type === TokenType.EOF) return false;
+      if (token.type === TokenType.LPAREN) depth++;
+      if (token.type === TokenType.RPAREN) depth--;
+      if (token.type === TokenType.SEMICOLON && depth > 0) return false;
+      offset++;
+    }
+
+    const afterParen = this.stream.peekAhead(offset);
+    return afterParen?.type === TokenType.AS;
+  }
+
+  // layer (count) as i fold...unfold
+  private parseBoundedIteration(start: Token): Statement {
+    const count = this.expressionParser.parseExpression();
+
+    this.stream.consume(TokenType.RPAREN, "Expected ')' after count");
+    this.stream.consume(
+      TokenType.AS,
+      "Expected 'as' after bounded iteration count",
+    );
+
+    const iteratorToken = this.stream.consume(
+      TokenType.IDENTIFIER,
+      "Expected iterator name after 'as'",
+    );
+    const iterator = iteratorToken?.value || "i";
+
+    const body = this.statementParser.parseBlock();
+
+    return {
+      type: ASTNodeType.BOUNDED_ITERATION,
+      count,
+      iterator,
+      body,
+      line: start.line,
+      column: start.column,
+    };
+  }
+
+  // layer (init; cond; update) fold...unfold
   private parseFor(start: Token): Statement {
     let init: Statement | null = null;
 
@@ -122,8 +176,7 @@ export class IteratorParser {
     };
   }
 
-  // layer ([Type] [identifier] : [expr]) fold [stmts?] unfold
-  // layer (crease id : i++) fold unfold
+  // layer (Type id : iterable) fold...unfold
   private parseForEach(start: Token): Statement {
     const typeToken = this.stream.advance();
     const idToken = this.stream.consume(

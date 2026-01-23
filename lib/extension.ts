@@ -1,24 +1,11 @@
-import {
-  ParseResult,
-  Program,
-  Statement,
-  ASTNodeType,
-  TokenType,
-  Token,
-} from "@/types";
+import { ParseResult, Program, Statement, ASTNodeType, Token } from "@/types";
 import { ErrorHandler } from "./parser/error";
 import { ExpressionParser } from "./parser/expression";
 import { TokenStream } from "./parser/helpers";
 import { PrimaryParser } from "./parser/primaries";
 import { StatementParser } from "./parser/statement";
-import { IteratorParser } from "./parser/iterators";
 
-/*
-*
-A harsh refactor from the one file version.
-Composition is good!
-*
-*/
+// Main parser entry point - coordinates all sub-parsers
 export class OrigamiParser {
   constructor(private tokens: Token[]) {}
 
@@ -41,14 +28,13 @@ export class OrigamiParser {
     this.errHandler,
     this.primaryParser,
     this.expressionParser,
-    this.iteratorParser,
   );
 
   public parse(): ParseResult {
     try {
       const program = this.parseProgram();
-
       const errs = this.errHandler.getErrors();
+
       return {
         success: errs.length === 0,
         errors: errs,
@@ -58,7 +44,6 @@ export class OrigamiParser {
       this.stream.synchronize();
       console.error(error);
 
-      // Catch unexpected parsing errors
       this.errHandler.addError({
         line: this.stream.peek()?.line || 1,
         column: this.stream.peek()?.column || 1,
@@ -67,10 +52,9 @@ export class OrigamiParser {
         severity: "error",
       });
 
-      const errs = this.errHandler.getErrors();
       return {
         success: false,
-        errors: errs,
+        errors: this.errHandler.getErrors(),
         ast: null,
       };
     }
@@ -82,9 +66,7 @@ export class OrigamiParser {
 
     while (!this.stream.isAtEnd()) {
       const stmt = this.statementParser.parseStatement();
-      if (stmt) {
-        statements.push(stmt);
-      }
+      if (stmt) statements.push(stmt);
     }
 
     return {
