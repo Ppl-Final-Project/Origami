@@ -36,7 +36,7 @@ export class TokenStream {
 
       if (this.debugParams.stallCount >= this.debugConfig.maxStalls) {
         throw new Error(
-          `Parser stalled at token index ${this.current} (${this.peek().value}) \n` +
+          `[STALLED] Parser stalled at token index ${this.current} (${this.peek().value}) \n` +
             `Stalled at context: ${context}`,
         );
       }
@@ -56,7 +56,7 @@ export class TokenStream {
 
     if (this.debugConfig.enabled) {
       console.log(
-        `\x1b[34m[ADVANCE]\x1b[0m ${token.type} '${token.value} @ ${token.line}:${token.column}'`,
+        `[ADVANCE] ${token.type} '${token.value} @ ${token.line}:${token.column}'`,
       );
     }
 
@@ -108,6 +108,8 @@ export class TokenStream {
     return null;
   }
   public synchronize(): void {
+    if (this.isAtEnd()) return;
+
     this.advance();
 
     while (!this.isAtEnd()) {

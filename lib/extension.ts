@@ -11,7 +11,6 @@ import { ExpressionParser } from "./parser/expression";
 import { TokenStream } from "./parser/helpers";
 import { PrimaryParser } from "./parser/primaries";
 import { StatementParser } from "./parser/statement";
-import { ControlFlowParser } from "./parser/control";
 
 /*
 *
@@ -54,6 +53,9 @@ export class OrigamiParser {
         ast: program,
       };
     } catch (error) {
+      this.stream.synchronize();
+      console.error(error);
+
       // Catch unexpected parsing errors
       this.errHandler.addError({
         line: this.stream.peek()?.line || 1,
@@ -77,14 +79,9 @@ export class OrigamiParser {
     const startToken = this.stream.peek();
 
     while (!this.stream.isAtEnd()) {
-      try {
-        const stmt = this.statementParser.parseStatement();
-        if (stmt) {
-          statements.push(stmt);
-        }
-      } catch (error) {
-        // On error, synchronize to the next statement
-        this.stream.synchronize();
+      const stmt = this.statementParser.parseStatement();
+      if (stmt) {
+        statements.push(stmt);
       }
     }
 

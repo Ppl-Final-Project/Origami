@@ -24,8 +24,6 @@ export class StatementParser {
   ) {
     this.controlParser = new ControlFlowParser(
       this.stream,
-      this.errHandler,
-      this.primaryParser,
       this.expressionParser,
       this.parseStatement,
     );

@@ -20,6 +20,7 @@ export enum ASTNodeType {
   IDENTIFIER = "Identifier",
   LITERAL = "Literal",
   INPUT_METHOD_CALL = "InputMethodCall",
+  CONDITIONAL_STATEMENT = "ConditionalStatement",
 }
 
 export interface ASTNode {
@@ -33,12 +34,23 @@ export interface Program extends ASTNode {
   body: Statement[];
 }
 
-export type Statement = DeclarationStatement | InputStatement;
+export type Statement =
+  | DeclarationStatement
+  | InputStatement
+  | ConditionalStatement;
 
 export interface DeclarationStatement extends ASTNode {
   type: ASTNodeType.DECLARATION_STATEMENT;
   dataType: string;
   declarators: Declarator[];
+}
+
+export interface ConditionalStatement extends ASTNode {
+  type: ASTNodeType.CONDITIONAL_STATEMENT;
+  branches: {
+    condition: Expression | null;
+    body: Statement[];
+  }[];
 }
 
 export interface InputStatement extends ASTNode {
