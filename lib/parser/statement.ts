@@ -68,7 +68,7 @@ export class StatementParser {
     return statements;
   }
 
-  private parseAssignmentForm(): InputStatement {
+  parseAssignmentForm(): InputStatement {
     const startToken = this.stream.peek();
 
     // Parse list of identifiers
@@ -96,6 +96,78 @@ export class StatementParser {
       line: startToken.line,
       column: startToken.column,
     };
+  }
+
+  parseVariableDeclaration(consumeSemicolon = true): Statement {
+    const typeToken = this.stream.advance();
+    const dataType = typeToken.value;
+    const startLine = typeToken.line;
+    const startColumn = typeToken.column;
+
+    const declarators: Declarator[] = [];
+
+    do {
+      if (this.stream.check(TokenType.COMMA)) {
+        this.stream.advance(); // consume comma
+      }
+
+      const identifier = this.primaryParser.parseIdentifier();
+      let initializer: Expression | undefined;
+
+      if (this.stream.check(TokenType.ASSIGN)) {
+        this.stream.advance(); // consume '='
+        initializer = this.expressionParser.parseExpression();
+      }
+
+      declarators.push({
+        type: ASTNodeType.DECLARATOR,
+        identifier,
+        initializer,
+        line: identifier.line,
+        column: identifier.column,
+      });
+    } while (this.stream.check(TokenType.COMMA));
+
+    if (consumeSemicolon) {
+      this.stream.consume(
+        TokenType.SEMICOLON,
+        "Expected ';' after variable declaration",
+      );
+    }
+
+    return {
+      type: ASTNodeType.DECLARATION_STATEMENT,
+      dataType,
+      declarators,
+      line: startLine,
+      column: startColumn,
+    };
+  }
+
+  parseInputStatement(decl: Statement): Statement {
+    if (decl.type !== ASTNodeType.DECLARATION_STATEMENT) return decl;
+
+    const declarators = decl.declarators;
+    const last = declarators[declarators.length - 1];
+
+    if (
+      last?.initializer?.type === ASTNodeType.INPUT_METHOD_CALL &&
+      declarators.every(
+        (d, i) => i === declarators.length - 1 || !d.initializer,
+      )
+    ) {
+      const identifiers = declarators.map((d) => d.identifier);
+      return {
+        type: ASTNodeType.INPUT_STATEMENT,
+        dataType: decl.dataType,
+        identifiers,
+        inputMethodCall: last.initializer as any,
+        line: decl.line,
+        column: decl.column,
+      };
+    }
+
+    return decl;
   }
 
   private isAssignmentForm(): boolean {

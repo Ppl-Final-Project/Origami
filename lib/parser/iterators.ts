@@ -1,4 +1,4 @@
-import { Statement, TokenType, Expression, ASTNodeType } from "@/types";
+import { Statement, TokenType, Expression, ASTNodeType, Token } from "@/types";
 import { ExpressionParser } from "./expression";
 import { TokenStream } from "./helpers";
 import { StatementParser } from "./statement";
@@ -26,9 +26,6 @@ export class IteratorParser {
     throw new Error("Expected iterator statement");
   }
 
-  // --------------------------------------------------
-  // do { ... } while (expr);
-  // --------------------------------------------------
   private parseDoWhile(): Statement {
     const start = this.stream.advance(); // work
 
@@ -51,9 +48,6 @@ export class IteratorParser {
     };
   }
 
-  // --------------------------------------------------
-  // while (expr) stmt
-  // --------------------------------------------------
   private parseWhile(): Statement {
     const start = this.stream.advance(); // spiral
 
@@ -73,9 +67,6 @@ export class IteratorParser {
     };
   }
 
-  // --------------------------------------------------
-  // for (...) OR foreach (...)
-  // --------------------------------------------------
   private parseForOrForEach(): Statement {
     const start = this.stream.advance(); // layer
     this.stream.consume(TokenType.LPAREN, "Expected '('");
@@ -91,13 +82,17 @@ export class IteratorParser {
     return this.parseFor(start);
   }
 
-  // --------------------------------------------------
-  // for(init; condition; update) stmt
-  // --------------------------------------------------
-  private parseFor(start: any): Statement {
-    const init = !this.stream.check(TokenType.SEMICOLON)
-      ? this.statementParser.parseStatement()
-      : null;
+  //
+  // layer (crease i = 0; i < 2; i) fold unfold
+  //
+  private parseFor(start: Token): Statement {
+    let init: Statement | null = null;
+
+    if (!this.stream.check(TokenType.SEMICOLON)) {
+      if (this.stream.check(TokenType.CREASE)) {
+        init = this.statementParser.parseVariableDeclaration(false);
+      }
+    }
 
     this.stream.consume(TokenType.SEMICOLON, "Expected ';'");
 
@@ -111,11 +106,10 @@ export class IteratorParser {
     if (!this.stream.check(TokenType.RPAREN)) {
       do {
         updates.push(this.expressionParser.parseExpression());
-      } while (this.stream.match(TokenType.COMMA) && this.stream.advance());
+      } while (this.stream.match(TokenType.COMMA));
     }
 
     this.stream.consume(TokenType.RPAREN, "Expected ')'");
-
     const body = this.statementParser.parseBlock();
 
     return {
@@ -132,7 +126,7 @@ export class IteratorParser {
   // --------------------------------------------------
   // foreach: for(Type id : expr) stmt
   // --------------------------------------------------
-  private parseForEach(start: any): Statement {
+  private parseForEach(start: Token): Statement {
     const typeToken = this.stream.advance();
     const idToken = this.stream.consume(
       TokenType.IDENTIFIER,
