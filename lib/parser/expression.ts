@@ -108,7 +108,7 @@ export class ExpressionParser {
   }
 
   parseUnary(): Expression {
-    if (this.tokens.match(TokenType.MINUS, TokenType.NOT)) {
+    if (this.tokens.match(TokenType.PLUS, TokenType.MINUS, TokenType.NOT)) {
       const operator = this.tokens.advance();
       const operand = this.parseUnary();
 
@@ -118,6 +118,18 @@ export class ExpressionParser {
         expr: operand,
         line: operator.line,
         column: operator.column,
+      };
+    }
+
+    if (this.tokens.match(TokenType.INCREMENT, TokenType.DECREMENT)) {
+      const op = this.tokens.advance();
+      const operand = this.parseUnary();
+      return {
+        type: ASTNodeType.PREFIX,
+        operator: op.value,
+        expr: operand,
+        line: op.line,
+        column: op.column,
       };
     }
 

@@ -1,3 +1,5 @@
+import { ExportPageInput } from "next/dist/export/types";
+
 export interface ParseError {
   line: number;
   column: number;
@@ -20,7 +22,8 @@ export enum ASTNodeType {
   IDENTIFIER = "Identifier",
   LITERAL = "Literal",
   INPUT_METHOD_CALL = "InputMethodCall",
-  POSTFIX = "PostFix",
+  POSTFIX = "Postfix",
+  PREFIX = "Prefix",
 
   CONDITIONAL_STATEMENT = "ConditionalStatement",
   WHILE_STATEMENT = "WhileStatement",
@@ -111,7 +114,8 @@ export type Expression =
   | Literal
   | InputMethodCall
   | UnaryExpression
-  | PostfixExpression;
+  | PostfixExpression
+  | PrefixExpression;
 
 export interface Declarator extends ASTNode {
   type: ASTNodeType.DECLARATOR;
@@ -151,6 +155,11 @@ export interface InputMethodCall extends ASTNode {
 
 export interface PostfixExpression extends ASTNode {
   type: ASTNodeType.POSTFIX;
+  expr: Expression;
+  operator: string;
+}
+export interface PrefixExpression extends ASTNode {
+  type: ASTNodeType.PREFIX;
   expr: Expression;
   operator: string;
 }
