@@ -22,7 +22,10 @@ export class OrigamiParser {
   constructor(private tokens: Token[]) {}
 
   private errHandler: ErrorHandler = new ErrorHandler();
-  private stream: TokenStream = new TokenStream(this.tokens, this.errHandler);
+  private stream: TokenStream = new TokenStream(this.tokens, this.errHandler, {
+    enabled: true,
+    maxStalls: 5,
+  });
   private primaryParser: PrimaryParser = new PrimaryParser(
     this.stream,
     this.errHandler,
@@ -50,6 +53,9 @@ export class OrigamiParser {
         ast: program,
       };
     } catch (error) {
+      this.stream.synchronize();
+      console.error(error);
+
       // Catch unexpected parsing errors
       this.errHandler.addError({
         line: this.stream.peek()?.line || 1,
@@ -73,14 +79,9 @@ export class OrigamiParser {
     const startToken = this.stream.peek();
 
     while (!this.stream.isAtEnd()) {
-      try {
-        const stmt = this.statementParser.parseStatement();
-        if (stmt) {
-          statements.push(stmt);
-        }
-      } catch (error) {
-        // On error, synchronize to the next statement
-        this.synchronize();
+      const stmt = this.statementParser.parseStatement();
+      if (stmt) {
+        statements.push(stmt);
       }
     }
 
@@ -90,25 +91,6 @@ export class OrigamiParser {
       line: startToken.line,
       column: startToken.column,
     };
-  }
-
-  // Synchronizes the parser after an error
-  private synchronize(): void {
-    this.stream.advance();
-
-    while (!this.stream.isAtEnd()) {
-      // Stop at the end of a statement
-      if (this.stream.previous().type === TokenType.SEMICOLON) {
-        return;
-      }
-
-      // Stop at the likely beginning of a new statement
-      if (this.stream.isType() || this.stream.check(TokenType.IDENTIFIER)) {
-        return;
-      }
-
-      this.stream.advance();
-    }
   }
 
   protected reset() {

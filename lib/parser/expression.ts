@@ -10,14 +10,65 @@ export class ExpressionParser {
     private primaryParser: PrimaryParser,
   ) {}
   parseExpression() {
-    let left = this.parseTerm();
+    return this.parseLogical();
+  }
+
+  parseLogical(): Expression {
+    let left = this.parseRelational();
+
+    while (this.tokens.match(TokenType.AND, TokenType.OR)) {
+      const operator = this.tokens.advance();
+      const right = this.parseRelational();
+      left = {
+        type: ASTNodeType.BINARY_EXPRESSION,
+        operator: operator.value,
+        left,
+        right,
+        line: operator.line,
+        column: operator.column,
+      };
+    }
+
+    return left;
+  }
+
+  parseRelational(): Expression {
+    let left = this.parseAdditive();
+
+    while (
+      this.tokens.match(
+        TokenType.EQUAL,
+        TokenType.NOT_EQUAL,
+        TokenType.LESS_THAN,
+        TokenType.GREATER_THAN,
+        TokenType.LESS_EQUAL,
+        TokenType.GREATER_EQUAL,
+      )
+    ) {
+      const operator = this.tokens.advance();
+      const right = this.parseAdditive();
+      left = {
+        type: ASTNodeType.BINARY_EXPRESSION,
+        operator: operator.value,
+        left,
+        right,
+        line: operator.line,
+        column: operator.column,
+      };
+    }
+
+    return left;
+  }
+
+  parseAdditive() {
+    let left = this.parseMultiplicative();
 
     while (
       this.tokens.check(TokenType.PLUS) ||
       this.tokens.check(TokenType.MINUS)
     ) {
       const operatorToken = this.tokens.advance();
-      const right = this.parseTerm();
+      const right = this.parseMultiplicative();
 
       left = {
         type: ASTNodeType.BINARY_EXPRESSION,
@@ -32,8 +83,8 @@ export class ExpressionParser {
     return left;
   }
 
-  parseTerm(): Expression {
-    let left = this.parseFactor();
+  parseMultiplicative(): Expression {
+    let left = this.parseUnary();
 
     while (
       this.tokens.check(TokenType.MULTIPLY) ||
@@ -41,7 +92,7 @@ export class ExpressionParser {
       this.tokens.check(TokenType.MODULO)
     ) {
       const operatorToken = this.tokens.advance();
-      const right = this.parseFactor();
+      const right = this.parsePrimary();
 
       left = {
         type: ASTNodeType.BINARY_EXPRESSION,
@@ -56,17 +107,28 @@ export class ExpressionParser {
     return left;
   }
 
-  // Parses a factor (the highest-precedence expression)
-  parseFactor(): Expression {
-    // Parenthesized expression
-    if (this.tokens.check(TokenType.LPAREN)) {
-      this.tokens.advance(); // consume (
-      const expr = this.parseExpression();
-      this.tokens.consume(TokenType.RPAREN, "Expected ')' after expression");
-      return expr;
+  parseUnary(): Expression {
+    if (this.tokens.match(TokenType.MINUS, TokenType.NOT)) {
+      const operator = this.tokens.advance();
+      const operand = this.parseUnary();
+
+      return {
+        type: ASTNodeType.UNARY_EXPRESSION,
+        operator: operator.value,
+        expr: operand,
+        line: operator.line,
+        column: operator.column,
+      };
     }
 
-    // Literal (number or string)
+    return this.parsePrimary();
+  }
+
+  parsePrimary(): Expression {
+    if (this.tokens.check(TokenType.LPAREN)) {
+      return this.parseGrouping();
+    }
+
     if (
       this.tokens.check(TokenType.NUMBER) ||
       this.tokens.check(TokenType.STRING)
@@ -74,29 +136,18 @@ export class ExpressionParser {
       return this.parseLiteral();
     }
 
-    // Identifier or an input method call
     if (this.tokens.check(TokenType.IDENTIFIER)) {
-      this.parseMethodCall();
+      return this.parseMethodCall();
     }
 
-    // Handle unexpected tokens in an expression
-    const token = this.tokens.peek();
-    this.errHandler.addError({
-      line: token.line,
-      column: token.column,
-      message: `Unexpected token '${token.value}' in expression`,
-      length: token.value.length,
-      severity: "error",
-    });
+    return this.reportExpressionError();
+  }
 
-    // Return a dummy identifier to allow parsing to continue
-    this.tokens.advance();
-    return {
-      type: ASTNodeType.IDENTIFIER,
-      name: token.value,
-      line: token.line,
-      column: token.column,
-    };
+  parseGrouping() {
+    this.tokens.consume(TokenType.LPAREN, "Expected '('.");
+    const expr = this.parseExpression();
+    this.tokens.consume(TokenType.RPAREN, "Expected ')' after expression.");
+    return expr;
   }
 
   parseMethodCall(): Expression {
@@ -133,10 +184,30 @@ export class ExpressionParser {
     const token = this.tokens.advance();
     return {
       type: ASTNodeType.LITERAL,
-      value: this.tokens.check(TokenType.NUMBER)
-        ? parseFloat(token.value)
-        : token.value,
+      value:
+        token.type === TokenType.NUMBER ? parseFloat(token.value) : token.value,
       raw: token.value,
+      line: token.line,
+      column: token.column,
+    };
+  }
+
+  reportExpressionError(): Expression {
+    // Handle unexpected tokens in an expression
+    const token = this.tokens.peek();
+    this.errHandler.addError({
+      line: token.line,
+      column: token.column,
+      message: `Unexpected token '${token.value}' in expression`,
+      length: token.value.length,
+      severity: "error",
+    });
+
+    // Return a dummy identifier to allow parsing to continue
+    this.tokens.synchronize();
+    return {
+      type: ASTNodeType.IDENTIFIER,
+      name: token.value,
       line: token.line,
       column: token.column,
     };

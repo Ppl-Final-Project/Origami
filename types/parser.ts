@@ -16,9 +16,11 @@ export enum ASTNodeType {
   DECLARATOR = "Declarator",
   EXPRESSION = "Expression",
   BINARY_EXPRESSION = "BinaryExpression",
+  UNARY_EXPRESSION = "UnaryExpression",
   IDENTIFIER = "Identifier",
   LITERAL = "Literal",
   INPUT_METHOD_CALL = "InputMethodCall",
+  CONDITIONAL_STATEMENT = "ConditionalStatement",
 }
 
 export interface ASTNode {
@@ -32,12 +34,23 @@ export interface Program extends ASTNode {
   body: Statement[];
 }
 
-export type Statement = DeclarationStatement | InputStatement;
+export type Statement =
+  | DeclarationStatement
+  | InputStatement
+  | ConditionalStatement;
 
 export interface DeclarationStatement extends ASTNode {
   type: ASTNodeType.DECLARATION_STATEMENT;
   dataType: string;
   declarators: Declarator[];
+}
+
+export interface ConditionalStatement extends ASTNode {
+  type: ASTNodeType.CONDITIONAL_STATEMENT;
+  branches: {
+    condition: Expression | null;
+    body: Statement[];
+  }[];
 }
 
 export interface InputStatement extends ASTNode {
@@ -71,6 +84,12 @@ export interface BinaryExpression extends ASTNode {
   right: Expression;
 }
 
+export interface UnaryExpression extends ASTNode {
+  type: ASTNodeType.UNARY_EXPRESSION;
+  operator: string;
+  expr: Expression;
+}
+
 export interface InputMethodCall extends ASTNode {
   type: ASTNodeType.INPUT_METHOD_CALL;
   object: Identifier;
@@ -81,10 +100,13 @@ export type Expression =
   | BinaryExpression
   | Identifier
   | Literal
-  | InputMethodCall;
+  | InputMethodCall
+  | UnaryExpression;
 
 export interface ParseResult {
   success: boolean;
   errors: ParseError[];
   ast: Program | null;
 }
+
+export type StatementParserFn = () => Statement | null;

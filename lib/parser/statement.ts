@@ -12,62 +12,59 @@ import { TokenStream } from "./helpers";
 import { ErrorHandler } from "./error";
 import { ExpressionParser } from "./expression";
 import { PrimaryParser } from "./primaries";
+import { ControlFlowParser } from "./control";
 
 export class StatementParser {
+  private controlParser: ControlFlowParser;
   constructor(
-    private tokens: TokenStream,
+    private stream: TokenStream,
     private errHandler: ErrorHandler,
     private primaryParser: PrimaryParser,
     private expressionParser: ExpressionParser,
-  ) {}
+  ) {
+    this.controlParser = new ControlFlowParser(
+      this.stream,
+      this.expressionParser,
+      this,
+    );
+  }
   parseStatement(): Statement | null {
-    // Handle statements starting with a type keyword
-    if (this.tokens.isType()) {
+    this.stream.checkProgress("parseStatement");
+
+    if (this.stream.startsWithType()) {
       return this.parseDeclarationOrInputStatement();
     }
 
-    // Handle input statements in assignment form
-    if (this.tokens.check(TokenType.IDENTIFIER)) {
-      // Peek ahead to confirm it's an input statement
-      const nextToken = this.tokens.peekAhead(1);
-      if (
-        nextToken &&
-        (nextToken.type === TokenType.COMMA ||
-          nextToken.type === TokenType.ASSIGN)
-      ) {
-        return this.parseInputStatementWithoutType();
-      }
+    if (this.isAssignmentForm()) {
+      // input statements without types
+      return this.parseAssignmentForm();
     }
 
-    // Handle unknown statement patterns
-    const token = this.tokens.peek();
-    this.errHandler.addError({
-      line: token.line,
-      column: token.column,
-      message: `Unexpected token '${token.value}' at start of statement`,
-      length: token.value.length,
-      severity: "error",
-    });
-    this.tokens.advance();
+    if (this.controlParser.startsWithConditional()) {
+      return this.controlParser.parseConditionals();
+    }
+
+    this.handleInvalidStatement();
     return null;
   }
-  private parseInputStatementWithoutType(): InputStatement {
-    const startToken = this.tokens.peek();
+
+  private parseAssignmentForm(): InputStatement {
+    const startToken = this.stream.peek();
 
     // Parse list of identifiers
     const identifiers: Identifier[] = [];
     identifiers.push(this.primaryParser.parseIdentifier());
 
-    while (this.tokens.check(TokenType.COMMA)) {
-      this.tokens.advance(); // consume comma
+    while (this.stream.check(TokenType.COMMA)) {
+      this.stream.advance(); // consume comma
       identifiers.push(this.primaryParser.parseIdentifier());
     }
 
-    this.tokens.consume(TokenType.ASSIGN, "Expected '=' in input statement");
+    this.stream.consume(TokenType.ASSIGN, "Expected '=' in input statement");
 
     const inputMethodCall = this.primaryParser.parseInputMethodCall();
 
-    this.tokens.consume(
+    this.stream.consume(
       TokenType.SEMICOLON,
       "Expected ';' after input statement",
     );
@@ -81,8 +78,15 @@ export class StatementParser {
     };
   }
 
+  private isAssignmentForm(): boolean {
+    if (!this.stream.check(TokenType.IDENTIFIER)) return false;
+
+    const next = this.stream.peekAhead(1);
+    return next?.type === TokenType.COMMA || next?.type === TokenType.ASSIGN;
+  }
+
   private parseDeclarationOrInputStatement(): Statement {
-    const typeToken = this.tokens.advance();
+    const typeToken = this.stream.advance();
     const dataType = typeToken.value;
     const startLine = typeToken.line;
     const startColumn = typeToken.column;
@@ -91,15 +95,15 @@ export class StatementParser {
 
     // Parse declarators separated by commas
     do {
-      if (this.tokens.check(TokenType.COMMA)) {
-        this.tokens.advance(); // consume comma
+      if (this.stream.check(TokenType.COMMA)) {
+        this.stream.advance(); // consume comma
       }
 
       const identifier = this.primaryParser.parseIdentifier();
       let initializer: Expression | undefined = undefined;
 
-      if (this.tokens.check(TokenType.ASSIGN)) {
-        this.tokens.advance(); // consume =
+      if (this.stream.check(TokenType.ASSIGN)) {
+        this.stream.advance(); // consume =
         initializer = this.expressionParser.parseExpression();
       }
 
@@ -110,7 +114,7 @@ export class StatementParser {
         line: identifier.line,
         column: identifier.column,
       });
-    } while (this.tokens.check(TokenType.COMMA));
+    } while (this.stream.check(TokenType.COMMA));
 
     // Special case: check if this is an input statement
     // This is true if there is only one initializer and it's an input call
@@ -122,7 +126,7 @@ export class StatementParser {
       )
     ) {
       const identifiers = declarators.map((d) => d.identifier);
-      this.tokens.consume(
+      this.stream.consume(
         TokenType.SEMICOLON,
         "Expected ';' after input statement",
       );
@@ -136,7 +140,7 @@ export class StatementParser {
       };
     }
 
-    this.tokens.consume(
+    this.stream.consume(
       TokenType.SEMICOLON,
       "Expected ';' after declaration statement",
     );
@@ -149,10 +153,18 @@ export class StatementParser {
       column: startColumn,
     };
   }
-  parseIfStatement() {
-    throw new Error("todo");
-  }
-  parseWhileStatement() {
-    throw new Error("todo");
+
+  private handleInvalidStatement() {
+    const token = this.stream.peek();
+
+    this.errHandler.addError({
+      line: token.line,
+      column: token.column,
+      message: `Unexpected token '${token.value}' at start of statement`,
+      length: token.value.length,
+      severity: "error",
+    });
+
+    this.stream.synchronize();
   }
 }
