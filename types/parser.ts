@@ -32,6 +32,7 @@ export enum ASTNodeType {
   FOREACH_STATEMENT = "ForEachStatement",
 
   ERROR_STATEMENT = "ErrorStatement",
+  ASSIGNMENT_STATEMENT = "AssignmentStatement",
 }
 
 export interface ASTNode {
@@ -53,7 +54,8 @@ export type Statement =
   | DoWhileStatement
   | ForStatement
   | ForEachStatement
-  | ErrorStatement;
+  | ErrorStatement
+  | AssignmentStatement;
 
 export interface ErrorStatement extends ASTNode {
   type: ASTNodeType.ERROR_STATEMENT;
@@ -63,6 +65,12 @@ export interface DeclarationStatement extends ASTNode {
   type: ASTNodeType.DECLARATION_STATEMENT;
   dataType: string;
   declarators: Declarator[];
+}
+
+export interface AssignmentStatement extends ASTNode {
+  type: ASTNodeType.ASSIGNMENT_STATEMENT;
+  identifier: Identifier;
+  value: Expression;
 }
 
 export interface ConditionalStatement extends ASTNode {
