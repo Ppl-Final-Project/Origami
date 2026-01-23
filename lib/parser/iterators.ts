@@ -32,7 +32,7 @@ export class IteratorParser {
   private parseDoWhile(): Statement {
     const start = this.stream.advance(); // work
 
-    const body = this.statementParser.parseStatement();
+    const body = this.statementParser.parseBlock();
 
     this.stream.consume(TokenType.SPIRAL, "Expected 'spiral' after do-body");
     this.stream.consume(TokenType.LPAREN, "Expected '('");
@@ -62,7 +62,7 @@ export class IteratorParser {
     const condition = this.expressionParser.parseExpression();
 
     this.stream.consume(TokenType.RPAREN, "Expected ')'");
-    const body = this.statementParser.parseStatement();
+    const body = this.statementParser.parseBlock();
 
     return {
       type: ASTNodeType.WHILE_STATEMENT,
@@ -115,7 +115,8 @@ export class IteratorParser {
     }
 
     this.stream.consume(TokenType.RPAREN, "Expected ')'");
-    const body = this.statementParser.parseStatement();
+
+    const body = this.statementParser.parseBlock();
 
     return {
       type: ASTNodeType.FOR_STATEMENT,
@@ -143,7 +144,7 @@ export class IteratorParser {
     const iterable = this.expressionParser.parseExpression();
 
     this.stream.consume(TokenType.RPAREN, "Expected ')'");
-    const body = this.statementParser.parseStatement();
+    const body = this.statementParser.parseBlock();
 
     return {
       type: ASTNodeType.FOREACH_STATEMENT,

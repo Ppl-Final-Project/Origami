@@ -17,14 +17,19 @@ import { IteratorParser } from "./iterators";
 
 export class StatementParser {
   private controlParser: ControlFlowParser;
+  private iteratorParser: IteratorParser;
   constructor(
     private stream: TokenStream,
     private errHandler: ErrorHandler,
     private primaryParser: PrimaryParser,
     private expressionParser: ExpressionParser,
-    private iteratorParser: IteratorParser,
   ) {
     this.controlParser = new ControlFlowParser(
+      this.stream,
+      this.expressionParser,
+      this,
+    );
+    this.iteratorParser = new IteratorParser(
       this.stream,
       this.expressionParser,
       this,
@@ -47,6 +52,20 @@ export class StatementParser {
     }
 
     return this.handleInvalidStatement();
+  }
+
+  parseBlock(): Statement[] {
+    this.stream.consume(TokenType.FOLD, "Expected 'fold'.");
+
+    const statements: Statement[] = [];
+
+    while (!this.stream.check(TokenType.UNFOLD) && !this.stream.isAtEnd()) {
+      const stmt = this.parseStatement();
+      statements.push(stmt);
+    }
+
+    this.stream.consume(TokenType.UNFOLD, "Expected 'unfold'.");
+    return statements;
   }
 
   private parseAssignmentForm(): InputStatement {

@@ -72,12 +72,12 @@ export interface ConditionalStatement extends ASTNode {
 export interface WhileStatement extends ASTNode {
   type: ASTNodeType.WHILE_STATEMENT;
   condition: Expression;
-  body: Statement;
+  body: Statement[];
 }
 
 export interface DoWhileStatement extends ASTNode {
   type: ASTNodeType.DO_WHILE_STATEMENT;
-  body: Statement;
+  body: Statement[];
   condition: Expression;
 }
 
@@ -86,7 +86,7 @@ export interface ForStatement extends ASTNode {
   init: Statement | null;
   condition: Expression | null;
   update: Expression[];
-  body: Statement;
+  body: Statement[];
 }
 
 export interface ForEachStatement extends ASTNode {
@@ -94,7 +94,7 @@ export interface ForEachStatement extends ASTNode {
   varType: string;
   identifier: string;
   iterable: Expression;
-  body: Statement;
+  body: Statement[];
 }
 
 export interface InputStatement extends ASTNode {
