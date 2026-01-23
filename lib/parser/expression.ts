@@ -121,7 +121,24 @@ export class ExpressionParser {
       };
     }
 
-    return this.parsePrimary();
+    return this.parsePostfix();
+  }
+
+  parsePostfix(): Expression {
+    let expr = this.parsePrimary(); // parse identifier, literal, etc.
+
+    while (this.tokens.match(TokenType.INCREMENT, TokenType.DECREMENT)) {
+      const opToken = this.tokens.advance();
+      expr = {
+        type: ASTNodeType.POSTFIX,
+        expr,
+        operator: opToken.value, // "++" or "--"
+        line: opToken.line,
+        column: opToken.column,
+      };
+    }
+
+    return expr;
   }
 
   parsePrimary(): Expression {

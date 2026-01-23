@@ -48,6 +48,7 @@ export class IteratorParser {
     };
   }
 
+  // spiral (v > 0) fold unfold
   private parseWhile(): Statement {
     const start = this.stream.advance(); // spiral
 
@@ -82,9 +83,7 @@ export class IteratorParser {
     return this.parseFor(start);
   }
 
-  //
   // layer (crease i = 0; i < 2; i) fold unfold
-  //
   private parseFor(start: Token): Statement {
     let init: Statement | null = null;
 
@@ -123,9 +122,8 @@ export class IteratorParser {
     };
   }
 
-  // --------------------------------------------------
-  // foreach: for(Type id : expr) stmt
-  // --------------------------------------------------
+  // layer ([Type] [identifier] : [expr]) fold [stmts?] unfold
+  // layer (crease id : i++) fold unfold
   private parseForEach(start: Token): Statement {
     const typeToken = this.stream.advance();
     const idToken = this.stream.consume(

@@ -20,6 +20,7 @@ export enum ASTNodeType {
   IDENTIFIER = "Identifier",
   LITERAL = "Literal",
   INPUT_METHOD_CALL = "InputMethodCall",
+  POSTFIX = "PostFix",
 
   CONDITIONAL_STATEMENT = "ConditionalStatement",
   WHILE_STATEMENT = "WhileStatement",
@@ -104,6 +105,14 @@ export interface InputStatement extends ASTNode {
   inputMethodCall: InputMethodCall;
 }
 
+export type Expression =
+  | BinaryExpression
+  | Identifier
+  | Literal
+  | InputMethodCall
+  | UnaryExpression
+  | PostfixExpression;
+
 export interface Declarator extends ASTNode {
   type: ASTNodeType.DECLARATOR;
   identifier: Identifier;
@@ -140,12 +149,11 @@ export interface InputMethodCall extends ASTNode {
   method: string;
 }
 
-export type Expression =
-  | BinaryExpression
-  | Identifier
-  | Literal
-  | InputMethodCall
-  | UnaryExpression;
+export interface PostfixExpression extends ASTNode {
+  type: ASTNodeType.POSTFIX;
+  expr: Expression;
+  operator: string;
+}
 
 export interface ParseResult {
   success: boolean;
