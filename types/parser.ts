@@ -33,6 +33,10 @@ export enum ASTNodeType {
 
   ERROR_STATEMENT = "ErrorStatement",
   ASSIGNMENT_STATEMENT = "AssignmentStatement",
+
+  CLASS_DECLARATION = "ClassDeclaration",
+  METHOD_DECLARATION = "MethodDeclaration",
+  PARAMETER = "Parameter",
 }
 
 export interface ASTNode {
@@ -55,7 +59,8 @@ export type Statement =
   | ForStatement
   | ForEachStatement
   | ErrorStatement
-  | AssignmentStatement;
+  | AssignmentStatement
+  | ClassDeclaration;
 
 export interface ErrorStatement extends ASTNode {
   type: ASTNodeType.ERROR_STATEMENT;
@@ -179,3 +184,28 @@ export interface ParseResult {
 }
 
 export type StatementParserFn = () => Statement | null;
+
+export interface Parameter extends ASTNode {
+  type: ASTNodeType.PARAMETER;
+  dataType: string;
+  name: string;
+  isArray: boolean;
+}
+
+export interface MethodDeclaration extends ASTNode {
+  type: ASTNodeType.METHOD_DECLARATION;
+  modifiers: string[]; // e.g., ["open", "guide"]
+  returnType: string;
+  name: string;
+  parameters: Parameter[];
+  body: Statement[];
+}
+
+export interface ClassDeclaration extends ASTNode {
+  type: ASTNodeType.CLASS_DECLARATION;
+  modifiers: string[]; // e.g., ["open"]
+  name: string;
+  superClass?: string;
+  methods: MethodDeclaration[];
+  fields: DeclarationStatement[];
+}
