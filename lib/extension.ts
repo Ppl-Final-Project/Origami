@@ -23,7 +23,10 @@ export class OrigamiParser {
   constructor(private tokens: Token[]) {}
 
   private errHandler: ErrorHandler = new ErrorHandler();
-  private stream: TokenStream = new TokenStream(this.tokens, this.errHandler);
+  private stream: TokenStream = new TokenStream(this.tokens, this.errHandler, {
+    enabled: true,
+    maxStalls: 5,
+  });
   private primaryParser: PrimaryParser = new PrimaryParser(
     this.stream,
     this.errHandler,

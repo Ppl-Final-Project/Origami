@@ -156,7 +156,7 @@ export class ExpressionParser {
     });
 
     // Return a dummy identifier to allow parsing to continue
-    this.tokens.advance();
+    this.tokens.synchronize();
     return {
       type: ASTNodeType.IDENTIFIER,
       name: token.value,

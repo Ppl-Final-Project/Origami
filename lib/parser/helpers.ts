@@ -2,19 +2,65 @@ import { TokenType, Token } from "@/types";
 import { ParserBase } from "./base";
 import { ErrorHandler } from "./error";
 
+export interface ParserDebugConfig {
+  enabled: boolean;
+  maxStalls: number;
+}
+
 export class TokenStream {
   private current: number = 0;
+  private debugConfig: ParserDebugConfig = {
+    enabled: false,
+    maxStalls: 5,
+  };
+  private debugParams = {
+    lastIndex: -1,
+    stallCount: 0,
+  };
+
   constructor(
     private tokens: Token[],
     private errHandler: ErrorHandler,
-  ) {}
+    debugConfig?: ParserDebugConfig,
+  ) {
+    if (debugConfig) {
+      this.debugConfig = debugConfig;
+    }
+  }
+
+  public checkProgress(context: string) {
+    if (!this.debugConfig.enabled) return;
+
+    if (this.current === this.debugParams.lastIndex) {
+      this.debugParams.stallCount++;
+
+      if (this.debugParams.stallCount >= this.debugConfig.maxStalls) {
+        throw new Error(
+          `Parser stalled at token index ${this.current} (${this.peek().value}) \n` +
+            `Stalled at context: ${context}`,
+        );
+      }
+    } else {
+      this.debugParams.stallCount = 0;
+    }
+
+    this.debugParams.lastIndex = this.current;
+  }
 
   public peek(): Token {
     return this.tokens[this.current];
   }
 
   public advance(): Token {
-    return this.tokens[this.current++];
+    const token = this.tokens[this.current++];
+
+    if (this.debugConfig.enabled) {
+      console.log(
+        `\x1b[34m[ADVANCE]\x1b[0m ${token.type} '${token.value} @ ${token.line}:${token.column}'`,
+      );
+    }
+
+    return token;
   }
 
   public isAtEnd(): boolean {
@@ -58,6 +104,7 @@ export class TokenStream {
       severity: "error",
     });
 
+    this.synchronize();
     return null;
   }
   public synchronize(): void {

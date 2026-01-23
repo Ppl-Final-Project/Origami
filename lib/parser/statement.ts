@@ -31,6 +31,8 @@ export class StatementParser {
     );
   }
   parseStatement(): Statement | null {
+    this.stream.checkProgress("parseStatement");
+
     if (this.stream.startsWithType()) {
       return this.parseDeclarationOrInputStatement();
     }
@@ -41,7 +43,7 @@ export class StatementParser {
     }
 
     if (this.controlParser.startsWithConditional()) {
-      this.controlParser.parseConditionals();
+      return this.controlParser.parseConditionals();
     }
 
     this.handleInvalidStatement();
@@ -164,5 +166,7 @@ export class StatementParser {
       length: token.value.length,
       severity: "error",
     });
+
+    this.stream.synchronize();
   }
 }
