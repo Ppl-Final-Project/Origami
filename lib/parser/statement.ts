@@ -25,7 +25,7 @@ export class StatementParser {
     this.controlParser = new ControlFlowParser(
       this.stream,
       this.expressionParser,
-      this.parseStatement,
+      this,
     );
   }
   parseStatement(): Statement | null {

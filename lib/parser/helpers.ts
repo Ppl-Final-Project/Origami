@@ -1,5 +1,4 @@
 import { TokenType, Token } from "@/types";
-import { ParserBase } from "./base";
 import { ErrorHandler } from "./error";
 
 export interface ParserDebugConfig {

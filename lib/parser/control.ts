@@ -5,10 +5,9 @@ import {
   Expression,
   ASTNodeType,
 } from "@/types";
-import { ErrorHandler } from "./error";
 import { ExpressionParser } from "./expression";
 import { TokenStream } from "./helpers";
-import { PrimaryParser } from "./primaries";
+import { StatementParser } from "./statement";
 
 type Branches = {
   condition: Expression | null;
@@ -19,7 +18,7 @@ export class ControlFlowParser {
   constructor(
     private stream: TokenStream,
     private expressionParser: ExpressionParser,
-    private parseStatement: StatementParserFn,
+    private statementParser: StatementParser,
   ) {}
 
   startsWithConditional() {
@@ -34,7 +33,6 @@ export class ControlFlowParser {
     this.parseElseIf(branches);
     this.parseElse(branches);
 
-    console.log(branches);
     const first = branches[0].body[0] ?? this.stream.previous();
 
     return {
@@ -86,7 +84,7 @@ export class ControlFlowParser {
     const statements: Statement[] = [];
 
     while (!this.stream.check(TokenType.UNFOLD) && !this.stream.isAtEnd()) {
-      const stmt = this.parseStatement();
+      const stmt = this.statementParser.parseStatement();
       if (stmt) statements.push(stmt);
     }
 

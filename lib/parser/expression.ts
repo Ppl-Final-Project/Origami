@@ -10,8 +10,56 @@ export class ExpressionParser {
     private primaryParser: PrimaryParser,
   ) {}
   parseExpression() {
-    return this.parseAdditive();
+    return this.parseLogical();
   }
+
+  parseLogical(): Expression {
+    let left = this.parseRelational();
+
+    while (this.tokens.match(TokenType.AND, TokenType.OR)) {
+      const operator = this.tokens.advance();
+      const right = this.parseRelational();
+      left = {
+        type: ASTNodeType.BINARY_EXPRESSION,
+        operator: operator.value,
+        left,
+        right,
+        line: operator.line,
+        column: operator.column,
+      };
+    }
+
+    return left;
+  }
+
+  parseRelational(): Expression {
+    let left = this.parseAdditive();
+
+    while (
+      this.tokens.match(
+        TokenType.EQUAL,
+        TokenType.NOT_EQUAL,
+        TokenType.LESS_THAN,
+        TokenType.GREATER_THAN,
+        TokenType.LESS_EQUAL,
+        TokenType.GREATER_EQUAL,
+      )
+    ) {
+      const operator = this.tokens.advance();
+      const right = this.parseAdditive();
+      left = {
+        type: ASTNodeType.BINARY_EXPRESSION,
+        operator: operator.value,
+        left,
+        right,
+        line: operator.line,
+        column: operator.column,
+      };
+    }
+
+    return left;
+  }
+
   parseAdditive() {
     let left = this.parseMultiplicative();
 
@@ -60,7 +108,7 @@ export class ExpressionParser {
   }
 
   parseUnary(): Expression {
-    if (this.tokens.check(TokenType.MINUS)) {
+    if (this.tokens.match(TokenType.MINUS, TokenType.NOT)) {
       const operator = this.tokens.advance();
       const operand = this.parseUnary();
 
