@@ -45,7 +45,7 @@ export class ControlFlowParser {
 
   private parseIf(branches: Branches[]) {
     const condition = this.parseCondition();
-    const body = this.parseBlock();
+    const body = this.statementParser.parseBlock();
     branches.push({ condition, body });
   }
 
@@ -58,7 +58,7 @@ export class ControlFlowParser {
       this.stream.advance(); // front
 
       const elifCondition = this.parseCondition();
-      const elifBody = this.parseBlock();
+      const elifBody = this.statementParser.parseBlock();
 
       branches.push({ condition: elifCondition, body: elifBody });
     }
@@ -66,7 +66,7 @@ export class ControlFlowParser {
   private parseElse(branches: Branches[]) {
     if (this.stream.check(TokenType.BACK)) {
       this.stream.advance(); // back
-      const elseBody = this.parseBlock();
+      const elseBody = this.statementParser.parseBlock();
       branches.push({ condition: null, body: elseBody });
     }
   }
@@ -76,19 +76,5 @@ export class ControlFlowParser {
     const expr = this.expressionParser.parseExpression();
     this.stream.consume(TokenType.RPAREN, "Expected ')' after condition.");
     return expr;
-  }
-
-  private parseBlock(): Statement[] {
-    this.stream.consume(TokenType.FOLD, "Expected 'fold'.");
-
-    const statements: Statement[] = [];
-
-    while (!this.stream.check(TokenType.UNFOLD) && !this.stream.isAtEnd()) {
-      const stmt = this.statementParser.parseStatement();
-      if (stmt) statements.push(stmt);
-    }
-
-    this.stream.consume(TokenType.UNFOLD, "Expected 'unfold'.");
-    return statements;
   }
 }

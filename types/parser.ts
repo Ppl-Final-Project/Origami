@@ -1,3 +1,5 @@
+import { ExportPageInput } from "next/dist/export/types";
+
 export interface ParseError {
   line: number;
   column: number;
@@ -20,7 +22,16 @@ export enum ASTNodeType {
   IDENTIFIER = "Identifier",
   LITERAL = "Literal",
   INPUT_METHOD_CALL = "InputMethodCall",
+  POSTFIX = "Postfix",
+  PREFIX = "Prefix",
+
   CONDITIONAL_STATEMENT = "ConditionalStatement",
+  WHILE_STATEMENT = "WhileStatement",
+  DO_WHILE_STATEMENT = "DoWhileStatement",
+  FOR_STATEMENT = "ForStatement",
+  FOREACH_STATEMENT = "ForEachStatement",
+
+  ERROR_STATEMENT = "ErrorStatement",
   ASSIGNMENT_STATEMENT = "AssignmentStatement",
 }
 
@@ -39,7 +50,16 @@ export type Statement =
   | DeclarationStatement
   | InputStatement
   | ConditionalStatement
+  | WhileStatement
+  | DoWhileStatement
+  | ForStatement
+  | ForEachStatement
+  | ErrorStatement
   | AssignmentStatement;
+
+export interface ErrorStatement extends ASTNode {
+  type: ASTNodeType.ERROR_STATEMENT;
+}
 
 export interface DeclarationStatement extends ASTNode {
   type: ASTNodeType.DECLARATION_STATEMENT;
@@ -61,12 +81,49 @@ export interface ConditionalStatement extends ASTNode {
   }[];
 }
 
+export interface WhileStatement extends ASTNode {
+  type: ASTNodeType.WHILE_STATEMENT;
+  condition: Expression;
+  body: Statement[];
+}
+
+export interface DoWhileStatement extends ASTNode {
+  type: ASTNodeType.DO_WHILE_STATEMENT;
+  body: Statement[];
+  condition: Expression;
+}
+
+export interface ForStatement extends ASTNode {
+  type: ASTNodeType.FOR_STATEMENT;
+  init: Statement | null;
+  condition: Expression | null;
+  update: Expression[];
+  body: Statement[];
+}
+
+export interface ForEachStatement extends ASTNode {
+  type: ASTNodeType.FOREACH_STATEMENT;
+  varType: string;
+  identifier: string;
+  iterable: Expression;
+  body: Statement[];
+}
+
 export interface InputStatement extends ASTNode {
   type: ASTNodeType.INPUT_STATEMENT;
   dataType?: string; // Optional for variable declaration
   identifiers: Identifier[];
   inputMethodCall: InputMethodCall;
 }
+
+export type Expression =
+  | BinaryExpression
+  | Identifier
+  | Literal
+  | InputMethodCall
+  | UnaryExpression
+  | PostfixExpression
+  | PrefixExpression;
 
 export interface Declarator extends ASTNode {
   type: ASTNodeType.DECLARATOR;
@@ -104,12 +161,16 @@ export interface InputMethodCall extends ASTNode {
   method: string;
 }
 
-export type Expression =
-  | BinaryExpression
-  | Identifier
-  | Literal
-  | InputMethodCall
-  | UnaryExpression;
+export interface PostfixExpression extends ASTNode {
+  type: ASTNodeType.POSTFIX;
+  expr: Expression;
+  operator: string;
+}
+export interface PrefixExpression extends ASTNode {
+  type: ASTNodeType.PREFIX;
+  expr: Expression;
+  operator: string;
+}
 
 export interface ParseResult {
   success: boolean;

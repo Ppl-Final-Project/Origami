@@ -11,6 +11,7 @@ import { ExpressionParser } from "./parser/expression";
 import { TokenStream } from "./parser/helpers";
 import { PrimaryParser } from "./parser/primaries";
 import { StatementParser } from "./parser/statement";
+import { IteratorParser } from "./parser/iterators";
 
 /*
 *
@@ -40,6 +41,7 @@ export class OrigamiParser {
     this.errHandler,
     this.primaryParser,
     this.expressionParser,
+    this.iteratorParser,
   );
 
   public parse(): ParseResult {

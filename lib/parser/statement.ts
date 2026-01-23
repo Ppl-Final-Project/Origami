@@ -13,9 +13,11 @@ import { ErrorHandler } from "./error";
 import { ExpressionParser } from "./expression";
 import { PrimaryParser } from "./primaries";
 import { ControlFlowParser } from "./control";
+import { IteratorParser } from "./iterators";
 
 export class StatementParser {
   private controlParser: ControlFlowParser;
+  private iteratorParser: IteratorParser;
   constructor(
     private stream: TokenStream,
     private errHandler: ErrorHandler,
@@ -27,28 +29,46 @@ export class StatementParser {
       this.expressionParser,
       this,
     );
+    this.iteratorParser = new IteratorParser(
+      this.stream,
+      this.expressionParser,
+      this,
+    );
   }
-  parseStatement(): Statement | null {
+  parseStatement(): Statement {
     this.stream.checkProgress("parseStatement");
 
     if (this.stream.startsWithType()) {
       return this.parseDeclarationOrInputStatement();
     }
-
     if (this.isAssignmentForm()) {
-      // input statements without types
-      return this.parseAssignmentOrInputStatement();
+      return this.parseAssignmentForm();
     }
-
     if (this.controlParser.startsWithConditional()) {
       return this.controlParser.parseConditionals();
     }
+    if (this.iteratorParser.startsWithIterator()) {
+      return this.iteratorParser.parseIterator();
+    }
 
-    this.handleInvalidStatement();
-    return null;
+    return this.handleInvalidStatement();
   }
 
-  private parseAssignmentOrInputStatement(): Statement {
+  parseBlock(): Statement[] {
+    this.stream.consume(TokenType.FOLD, "Expected 'fold'.");
+
+    const statements: Statement[] = [];
+
+    while (!this.stream.check(TokenType.UNFOLD) && !this.stream.isAtEnd()) {
+      const stmt = this.parseStatement();
+      statements.push(stmt);
+    }
+
+    this.stream.consume(TokenType.UNFOLD, "Expected 'unfold'.");
+    return statements;
+  }
+
+  parseAssignmentForm(): InputStatement {
     const startToken = this.stream.peek();
 
     // Parse list of identifiers
@@ -95,6 +115,78 @@ export class StatementParser {
       line: startToken.line,
       column: startToken.column,
     };
+  }
+
+  parseVariableDeclaration(consumeSemicolon = true): Statement {
+    const typeToken = this.stream.advance();
+    const dataType = typeToken.value;
+    const startLine = typeToken.line;
+    const startColumn = typeToken.column;
+
+    const declarators: Declarator[] = [];
+
+    do {
+      if (this.stream.check(TokenType.COMMA)) {
+        this.stream.advance(); // consume comma
+      }
+
+      const identifier = this.primaryParser.parseIdentifier();
+      let initializer: Expression | undefined;
+
+      if (this.stream.check(TokenType.ASSIGN)) {
+        this.stream.advance(); // consume '='
+        initializer = this.expressionParser.parseExpression();
+      }
+
+      declarators.push({
+        type: ASTNodeType.DECLARATOR,
+        identifier,
+        initializer,
+        line: identifier.line,
+        column: identifier.column,
+      });
+    } while (this.stream.check(TokenType.COMMA));
+
+    if (consumeSemicolon) {
+      this.stream.consume(
+        TokenType.SEMICOLON,
+        "Expected ';' after variable declaration",
+      );
+    }
+
+    return {
+      type: ASTNodeType.DECLARATION_STATEMENT,
+      dataType,
+      declarators,
+      line: startLine,
+      column: startColumn,
+    };
+  }
+
+  parseInputStatement(decl: Statement): Statement {
+    if (decl.type !== ASTNodeType.DECLARATION_STATEMENT) return decl;
+
+    const declarators = decl.declarators;
+    const last = declarators[declarators.length - 1];
+
+    if (
+      last?.initializer?.type === ASTNodeType.INPUT_METHOD_CALL &&
+      declarators.every(
+        (d, i) => i === declarators.length - 1 || !d.initializer,
+      )
+    ) {
+      const identifiers = declarators.map((d) => d.identifier);
+      return {
+        type: ASTNodeType.INPUT_STATEMENT,
+        dataType: decl.dataType,
+        identifiers,
+        inputMethodCall: last.initializer as any,
+        line: decl.line,
+        column: decl.column,
+      };
+    }
+
+    return decl;
   }
 
   private isAssignmentForm(): boolean {
@@ -173,7 +265,7 @@ export class StatementParser {
     };
   }
 
-  private handleInvalidStatement() {
+  private handleInvalidStatement(): Statement {
     const token = this.stream.peek();
 
     this.errHandler.addError({
@@ -185,5 +277,11 @@ export class StatementParser {
     });
 
     this.stream.synchronize();
+
+    return {
+      type: ASTNodeType.ERROR_STATEMENT,
+      line: token.line,
+      column: token.column,
+    };
   }
 }
